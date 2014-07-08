@@ -1,0 +1,937 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 11}
+\subtitle{Rootfinding}
+\date{October 1, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+%% -------------------------------------------------
+%\begin{frame}
+%\frametitle{Convergence rate}
+%\begin{itemize}
+%  \item Recall sequence $a_n \approx e^{-r n}$ is converging {\bf{geometrically}}
+%  \item parameter $r$ gives the (asymptotic) geometric ``rate'' of convergence
+%  \[
+%  \lim_{n\rightarrow \infty} \frac{a_{n+1}}{a_n} = e^{-r(n+1)}/e^{-rn} = e^{-r} <
+%1
+%\]
+%and
+%\[
+%  r = \lim_{n\rightarrow\infty} \frac{-\log |a_n|}{n}
+%\]
+%\end{itemize}
+%\end{frame}
+%% -------------------------------------------------
+%% -------------------------------------------------
+%\begin{frame}
+%\frametitle{Convergence}
+%\begin{itemize}
+%  \item Then
+%    \begin{equation*}
+%      \frac{|e_{n+1}|}{|e_{n}|} \approx \text{constant}
+%    \end{equation*}
+%  \item In general, a sequence is said to converge with rate $r$ if
+%    \begin{equation*}
+%      \lim_{k\rightarrow\infty} \frac{|e_{n+1}|}{|e_{n}|^{r}} = C
+%    \end{equation*}
+%\end{itemize}
+%\begin{block}{Special Cases:}
+%\begin{itemize}
+%  \item If $r=1$ and $C<1$, then the rate is \emph{linear}
+%  \item If $r>1$, then the rate is \emph{superlinear}
+%  \item If $r=2$ and $C<1$, then the rate is \emph{quadratic}
+%  \item If $r=3$ and $C<1$, then the rate is \emph{cubic}
+%\end{itemize}
+%\end{block}
+%\end{frame}
+%% -------------------------------------------------
+%% -------------------------------------------------
+%\begin{frame}
+%\setbeamercovered{invisible}
+%\frametitle{Example}
+%\begin{block}{Convergence Rate}
+%\begin{enumerate}
+%\item $10^{-2}$, $10^{-3}$, $10^{-4}$, $10^{-5}$... \onslide<2->{(linear with $C=10^{-1}$)}
+%\item $10^{-2}$, $10^{-4}$, $10^{-6}$, $10^{-8}$... \onslide<2->{(linear with $C=10^{-2}$)}
+%\item $10^{-2}$, $10^{-3}$, $10^{-5}$, $10^{-8}$... \onslide<2->{(superlinear, not quadratic)}
+%\item $10^{-2}$, $10^{-4}$, $10^{-8}$, $10^{-16}$...\onslide<2->{(quadratic)}
+%\end{enumerate}
+%\end{block}
+%\end{frame}
+%% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Some Motivation}
+\begin{itemize}
+  \item Not all problems are as easy to solve as linear systems of equations
+  \item Even the 5th-order polynomial has no closed form solution
+  \item Many problems fall into this category:
+  \begin{itemize}
+     \item Where should wireless access points be placed?  How many?
+     \item Where do two curved surfaces intersect?
+     \item What is the subsurface geology in the Los Angeles basin?
+  \end{itemize}
+  \item How do we solve these problems?  Iterate, getting closer (we hope!) 
+    each time.  Iterations are 
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+
+% -------------------------------------------------
+\begin{frame}
+\frametitle{What Next?}
+We need to study some iterations.
+\begin{itemize}
+  \item iteratively finding a root to an equation
+  \item iteratively finding the solution to an algebraic system
+  \item iteratively finding solutions to Ordinary Differential Equations
+  (ODEs)
+  \item ...
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Root Finding}
+Given a function $f(x)$, find $x$ so that $f(x) = 0$
+\pgfimage[height=4cm]{figs/root}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Rootfinding}
+Goals:
+\begin{itemize}
+  \item Find roots to equations
+  \item Compare usability of different methods
+  \item Compare convergence properties of different methods
+\end{itemize}
+\begin{enumerate}
+  \item bracketing methods
+  \item Bisection Method
+  \item Newton's Method
+  \item Secant Method
+  \item (opt) fixed point iterations
+  \item (opt) special Case: Roots of Polynomials
+\end{enumerate}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Roots of $f(x)$}
+\begin{itemize}
+\item Any single valued function can be written as $f(x)=0$
+\end{itemize}
+\begin{example}
+\begin{itemize}
+  \item Find $x$ so that $\cos{(x)} = x$
+  \item That is, find where $f(x) = \cos{(x)} - x = 0$
+\end{itemize}
+\centering
+\pgfimage[height=4cm]{figs/ch6_cosx}
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Analyze your Application}
+\begin{itemize}
+  \item Is the function complicated to evaluate?
+    \begin{itemize}
+      \item lots of expresions?
+      \item singularities?
+      \item simplify?  polynomial?
+    \end{itemize}
+  \item How accuracte does our root need to be?
+  \item How fast/robust should our method be?
+\end{itemize}
+
+\begin{alertblock}{!}
+From this, you can pick the right method...
+\end{alertblock}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Basic Root Finding Strategy}
+\begin{block}{}
+\begin{enumerate}
+  \item Plot the function
+  \begin{itemize} 
+    \item Get an initial guess
+    \item Identify problematic parts
+  \end{itemize}
+  \item Start with the initial guess and iterate
+\end{enumerate}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Bracket Basics}
+\begin{itemize}
+  \item A root $x$ is \emph{bracketed} on $[a,b]$ if $f(a)$ and $f(b)$ have
+  opposite sign.
+  \item Changing signs does not guarantee bracketed, however: singularity
+\pgfimage[height=4cm]{figs/ch6_bracket}
+\item Bracketing helps get an initial guess
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Bracket Algorithm}
+\begin{lstlisting}[mathescape, caption=Bracket Algorithm]
+given: $f(x)$, $x_{min}$, $x_{max}$, $n$
+
+$dx = (x_{max} - x_{min})/n$
+$x_{left} = x_{min}$
+$i=0$
+
+while $i < n$
+  $i = i + 1$
+  $x_{right} = x_{left} + dx$
+  if $f(x)$ changes sign in $[x_{left},x_{right}]$
+    save $[x_{left},x_{right}]$ as an interval with a root
+  end
+  $x_{left} = x_{right}$
+\end{lstlisting}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[containsverbatim]
+\frametitle{Testing Sign}
+\begin{block}{$f(a) \times f(b) < 0$}
+Should we use?
+
+\begin{verbatim}
+fa = myfunc(a);
+fb = myfunc(b);
+
+if(fa*fb<0)
+  (save)
+end
+\end{verbatim}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[containsverbatim]
+\frametitle{Better Sign Test}
+\begin{alertblock}{!}
+Nope.  Underflow...
+\end{alertblock}
+
+\begin{block}{\texttt{sign()}}
+Use matlab's sign
+
+\begin{verbatim}
+fa = myfunc(a);
+fb = myfunc(b);
+
+if(sign(fa) ~= sign(fb))
+  (save)
+end
+\end{verbatim}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+%% -------------------------------------------------
+%\begin{frame}[containsverbatim]
+%\frametitle{bracket.m}
+%Let's look at {\bf{bracket.m}}:
+%  \begin{itemize}
+%    \item searches for brackets of user-defined $f(x)$
+%    \item plots the brackets
+%    \item returns the brackets
+%  \end{itemize}
+%
+%Usage:
+%\begin{verbatim}
+%  Xb = bracket(fun,xmin,xmax)
+%  Xb = bracket(fun,xmin,xmax,nx)
+%  fun = (string) name of mfile function
+%\end{verbatim}
+%\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Moving forward...}
+Bracketing is fine.  But we need to find the actual root:
+\begin{itemize}
+  \item Bisection
+  \item Newton's Method
+  \item Secant Method
+  \item Fixed Point Iteration
+\end{itemize}
+
+Process:
+\begin{enumerate}
+  \item use bracket.m to get a visual and brackets
+  \item search brackets with these methods
+\end{enumerate}
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Bisection}
+
+Given a bracketed root, halve the interval while continuing to
+bracket the root
+
+\begin{center}
+	\pgfimage[height=3cm]{./figs/bisection}
+\end{center}
+
+
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Bisection (2)}
+
+\begin{columns}
+  \begin{column}{0.48\textwidth}
+For the bracket interval $[a,b]$ the midpoint is
+\begin{equation*}
+    x_m = \frac{1}{2}(a+b)
+\end{equation*}
+
+idea:
+\begin{enumerate}
+\item split bracket in half
+\item select the bracket that has the root
+\item goto step 1
+\end{enumerate}
+  \end{column}
+  \begin{column}{0.48\textwidth}
+  \pgfimage[height=6cm]{figs/Bisection_method}
+  \end{column}
+\end{columns}
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Bisection Algorithm}
+
+\begin{lstlisting}[mathescape,caption=Bisection,label=algo:bisection]
+  initialize:  $a = \ldots$, $b = \ldots$   
+  for $k=1,2,\ldots$                        
+    $x_m = a + (b-a)/2$                     
+    if $\mathrm{sign}\left( f(x_m) \right) = \mathrm{sign}\left( f(x_a) \right)$ 
+      $a = x_m$  
+    else         
+      $b = x_m$  
+    end          
+    if converged, stop       
+  end
+\end{lstlisting}
+
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Bisection Example}
+
+Solve with bisection:
+\begin{equation*}
+    x - x^{1/3} - 2 = 0
+\end{equation*}
+
+\vspace{2ex}
+\begin{center}
+  \small
+  \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{clllr}
+     $k$ & \multicolumn{1}{c}{$a$}
+         & \multicolumn{1}{c}{$b$}
+         &  \multicolumn{1}{c}{$x_{mid}$}
+         & \multicolumn{1}{c}{$f(x_{mid})$} \\ \hline
+      0 &  3           & 4          &             &             \\
+      1 &  3           & 4          & 3.5         & -0.01829449 \\
+      2 &  3.5         & 4          & 3.75        &  0.19638375 \\
+      3 &  3.5         & 3.75       & 3.625       &  0.08884159 \\
+      4 &  3.5         & 3.625      & 3.5625      &  0.03522131 \\
+      5 &  3.5         & 3.5625     & 3.53125     &  0.00845016 \\
+      6 &  3.5         & 3.53125    & 3.515625    & -0.00492550 \\
+      7 &  3.51625     & 3.53125    & 3.5234375   &  0.00176150 \\
+      8 &  3.51625     & 3.5234375  & 3.51953125  & -0.00158221 \\
+      9 &  3.51953125  & 3.5234375  & 3.52148438  &  0.00008959 \\
+     10 &  3.51953125  & 3.52148438 & 3.52050781  & -0.00074632 \\
+    \end{tabular}
+\end{center}
+
+
+
+% ------------
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Analysis of Bisection}
+
+Let $\delta_n$ be the size of the bracketing interval at the $n^{th}$ stage
+of bisection. Then
+\begin{align*}
+    \delta_0 &= b - a = \mathrm{initial\ bracketing\ interval}  \\
+    \delta_1 &= \frac{1}{2} \delta_0                            \\
+    \delta_2 &= \frac{1}{2} \delta_1 = \frac{1}{4} \delta_0     \\
+             & \vdots                                           \\
+    \delta_n &= \left( \frac{1}{2} \right)^n \delta_0 \\
+             &   \\
+    &\Longrightarrow  \qquad \frac{\delta_n}{\delta_0} = \left( \frac{1}{2} \right)^n = 2^{-n}\\[4pt]
+    &\text{or}        \qquad\qquad n = \log_2 \left( \frac{\delta_n}{\delta_0} \right)
+\end{align*}
+
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Analysis of Bisection}
+
+\begin{equation*}
+    \frac{\delta_n}{\delta_0} = \left( \frac{1}{2} \right)^n = 2^{-n}
+    \qquad\text{or}\qquad
+    n = \log_2 \left( \frac{\delta_n}{\delta_0} \right)
+\end{equation*}
+
+\vspace{3ex}
+\begin{center}
+    % \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{ccc}
+         $n$  & $\displaystyle{\frac{\delta_n}{\delta_0}}$ & \parbox{1.25in}{\ \ function\\ evaluations} \\[14pt] \hline
+         $5$  &  $3.1 \times 10^{-2}$  &   $7$   \\
+        $10$  &  $9.8 \times 10^{-4}$  &  $12$   \\
+        $20$  &  $9.5 \times 10^{-7}$  &  $22$   \\
+        $30$  &  $9.3 \times 10^{-10}$ &  $32$   \\
+        $40$  &  $9.1 \times 10^{-13}$ &  $42$   \\
+        $50$  &  $8.9 \times 10^{-16}$ &  $52$   \\
+    \end{tabular}
+\end{center}
+
+\noindent Remember the game Twenty questions?
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Convergence Criteria}
+
+An automatic root-finding procedure needs to monitor progress toward the root
+and stop when current guess is close enough to the desired root.
+
+\begin{itemize}
+    \item   Convergence checking will avoid searching to unnecessary accuracy.
+    \item   Check how closeness of successive approximations
+\begin{equation*}
+                |x_k - x_{k-1}| < \delta_x
+\end{equation*}
+    \item   Check how close $f(x)$ is to zero at the current guess.
+\begin{equation*}
+                |f(x_k)| < \delta_f
+\end{equation*}
+    \item Which one you use depends on the problem being solved
+\end{itemize}
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[shrink]
+\frametitle{Convergence Criteria on $x$}
+
+
+\begin{center}
+	\pgfimage[height=3cm]{./figs/rootTolerance}
+\end{center}
+
+\begin{align*}
+    x_k     &= \mathrm{current\ guess\ at\ the\ root}\\
+    x_{k-1} &= \mathrm{previous\ guess\ at\ the\ root}
+\end{align*}
+
+\vspace{2ex}
+\textbf{Absolute} tolerance: $\bigl| x_k - x_{k-1} \bigr| < \delta_x$
+
+\textbf{Relative} tolerance: $\Biggl| \dfrac{x_k - x_{k-1}}{b-a} \Biggr| < \hat{\delta}_x$
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Convergence Criteria on $f(x)$}
+
+\vspace{2ex}
+
+\begin{center}
+	\pgfimage[height=3cm]{./figs/rootTolerance}
+\end{center}
+
+\vspace{3ex}
+\textbf{Absolute} tolerance: $\bigl| f(x_k) \bigr| < \delta_f$
+
+\vspace{3ex}
+\textbf{Relative} tolerance:
+\begin{equation*}
+    |f(x_k)| < \hat{\delta}_f\ \mathrm{max} \Bigl\{ |f(a_0)|, |f(b_0)| \Bigr\}
+\end{equation*}
+
+where $a_0$ and $b_0$ are the original brackets
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[shrink]
+\frametitle{Convergence Criteria Compared}
+
+
+If $f'(x)$ is small near the root, it is easy to satisfy tolerance on $f(x)$ for
+a large range of $\Delta x$. The tolerance on $\Delta x$ is more conservative
+\begin{center}
+	\pgfimage[height=3cm]{./figs/rootTolerance_dxbest}
+\end{center}
+
+\vspace{3ex}
+If $f'(x)$ is large near the root, it is possible to satisfy the tolerance on
+$\Delta x$ when $|f(x)|$ is still large.  The tolerance on $f(x)$ is more
+conservative
+\begin{center}
+	\pgfimage[height=3cm]{./figs/rootTolerance_dfbest}
+\end{center}
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Relationship Between Criteria}
+\begin{itemize}
+  \item How are the criteria on $x$ and $f(x)$ related?  Consider the
+    ratio of the two criteria
+  \begin{equation*}
+    { f(x_b) - f(x_a) \over x_b - x_a }
+  \end{equation*}
+  \item The limit of this as $x_a$ and $x_b$ converge to the exact
+    answer $x^*$ is just $f'(x^*)$.
+  \item We can thus expect (this is not yet a proof) that 
+  \begin{equation*}
+    | f(x_b)-f(x_z) | \approx |f'(x^*)| | x_b - x_a |
+  \end{equation*}
+  as $x_a$ and $x_b$ approach the solution $x^*$.
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Convergence rate of a root finding iteration}
+\begin{itemize}
+  \item Let $e_n = x^* - x_n$ be the error.
+  \item In general, a sequence is said to converge with rate $r$ if
+    \begin{equation*}
+      \lim_{k\rightarrow\infty} \frac{|e_{n+1}|}{|e_{n}|^{r}} = C
+    \end{equation*}
+\end{itemize}
+\begin{block}{Special Cases:}
+\begin{itemize}
+  \item If $r=1$ and $C=1$, then the rate is \emph{sublinear}
+  \item If $r=1$ and $C<1$, then the rate is \emph{linear}
+  \item If $r>1$ (i.e. $r=1$ and $C=0$), then the rate is \emph{superlinear}
+  \item If $r=2$ and $C>0$, then the rate is \emph{quadratic}
+  \item If $r=3$ and $C>0$, then the rate is \emph{cubic}
+\end{itemize}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\setbeamercovered{invisible}
+\frametitle{Example}
+\begin{block}{Convergence Rate}
+\begin{enumerate}
+\item $10^{-2}$, $10^{-3}$, $10^{-4}$, $10^{-5}$... \onslide<2->{(linear with $C=10^{-1}$)}
+\item $10^{-2}$, $10^{-4}$, $10^{-6}$, $10^{-8}$... \onslide<2->{(linear with $C=10^{-2}$)}
+\item $10^{-2}$, $10^{-3}$, $10^{-5}$, $10^{-8}$... \onslide<2->{(superlinear, not quadratic)}
+\item $10^{-2}$, $10^{-4}$, $10^{-8}$, $10^{-16}$...\onslide<2->{(quadratic)}
+\item $10^{-2}$, $10^{-6}$, $10^{-18}$, ... \onslide<2->{(cubic)}
+\end{enumerate}
+\end{block}
+\onslide<2->{\begin{itemize}}
+\onslide<2->{\item Linear: Adds one digit of accuracy at each step}
+\onslide<2->{\item Quadratic: Doubles the number of digits at each step}
+\onslide<2->{\end{itemize}}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Performing Division}
+\begin{itemize}
+  \item Ever wondered how a computer process performs division?
+  \item ``Long'' division requires lookup, subtraction, shifts
+  \item Generates one digit and a time.  Can we do better?
+\end{itemize}
+To answer this, we need to look at faster methods than bisection
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Newton's Method}
+
+\vspace{4ex}
+\begin{center}
+	\pgfimage[height=3cm]{./figs/Newton}
+\end{center}
+
+For a current guess $x_k$, use $f(x_k)$ and the slope $f'(x_k)$
+to predict where $f(x)$ crosses the $x$ axis.
+
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Newton's Method}
+
+
+Expand $f(x)$ in Taylor Series around $x_k$
+\begin{align*}
+    f(x_k + \Delta x) = f(x_k) &+ \Delta x \left. \frac{df}{dx}\right|_{x_k}  \\[4pt]
+                               &+ \frac{(\Delta x)^2}{2} \left. \frac{d^2 f}{dx^2}\right|_{x_k}
+                                + \ldots
+\end{align*}
+
+Substitute $\Delta x = x_{k+1} - x_k$
+
+and neglect $2^{nd}$ order terms to get
+\begin{equation*}
+	f(x_{k+1}) \approx f(x_k) + \left( x_{k+1} - x_k \right) f'(x_k)
+\end{equation*}
+where
+\begin{equation*}
+    f'(x_k) = \left. \frac{df}{dx} \right|_{x_k}
+\end{equation*}
+
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Newton's Method}
+
+
+Goal is to find $x$ such that $f(x) = 0$.
+
+Set $f(x_{k+1}) = 0$ and solve for $x_{k+1}$
+\begin{equation*}
+    0 = f(x_k) + \left( x_{k+1} - x_k \right) f'(x_k)
+\end{equation*}
+or, solving for $x_{k+1}$
+\begin{equation*}
+    \boxed{
+        x_{k+1} = x_k - \frac{f(x_k)}{f'(x_k)}
+    }
+\end{equation*}
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Newton's Method Algorithm}
+
+\begin{lstlisting}[mathescape,caption=,label=algo:newton]
+  initialize:  $x_1 = \ldots$                      
+  for $k=2,3,\ldots$                               
+    $x_k = x_{k-1} - f(x_{k-1})/f'(x_{k-1})$       
+    if converged, stop       
+  end
+\end{lstlisting}
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Newton's Method Example}
+
+Solve:
+\begin{equation*}
+    x - x^{1/3} - 2 = 0
+\end{equation*}
+First derivative is
+\begin{equation*}
+    f'(x) = 1 - \frac{1}{3}x^{-2/3}
+\end{equation*}
+The iteration formula is
+\begin{equation*}
+    x_{k+1} = x_k - \frac{x_k - x_k^{1/3} - 2}{1 - \frac{1}{3}x_k^{-2/3}}
+\end{equation*}
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Newton's Method Example}
+
+
+\begin{equation*}
+    x_{k+1} = x_k - \frac{x_k - x_k^{1/3} - 2}{1 - \frac{1}{3}x_k^{-2/3}}
+\end{equation*}
+
+\vspace{2ex}
+\begin{center}
+  \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{cccc}
+    $k$ &    $x_k$     & $f'(x_k)$  &   $f(x)$                   \\ \hline
+     0  &  3           & 0.83975005 & -0.44224957                \\
+     1  &  3.52664429  & 0.85612976 &  0.00450679                \\
+     2  &  3.52138015  & 0.85598641 &  $3.771\times 10^{-7}$   \\
+     3  &  3.52137971  & 0.85598640 &  $2.664\times 10^{-15}$ \\
+     4  &  3.52137971  & 0.85598640 &  0.0                       \\
+    \end{tabular}
+\end{center}
+
+\vspace{2ex}
+
+\textbf{Conclusion}
+\vspace{0.0cm}
+\begin{itemize}
+    \item   Newton's method converges \emph{much} more quickly than bisection
+    \item   Newton's method requires an analytical formula for $f'(x)$
+    \item   The algorithm is simple as long as $f'(x)$ is available.
+    \item   Iterations are not guaranteed to stay inside an ordinal bracket.
+\end{itemize}
+
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Divergence of Newton's Method}
+
+\vspace{4ex}
+\begin{center}
+	\pgfimage[height=3cm]{./figs/NewtonFails}
+\end{center}
+
+\vspace{3ex}
+Since
+\begin{equation*}
+    x_{k+1} = x_k - \frac{f(x_k)}{f'(x_k)}
+\end{equation*}
+the new guess, $x_{k+1}$, will be far from the old guess
+whenever $f'(x_k)\approx 0$
+
+
+
+
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Divergence of Newton's Method}
+\framesubtitle{Can you guess?}
+
+\begin{center}
+	\pgfimage[width=0.8\textwidth]{figs/newtonproblem}
+\end{center}
+
+\texttt{http://www.math.umn.edu/\~{}garrett/qy/Newton.html}
+% ------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[shrink]
+\frametitle{Newton's Method: Convergence}
+\begin{block}{Recall}
+  Convergence of a method is said to be of order $r$ if there is a
+constant $C>0$ such that
+\begin{equation*}
+  \lim_{k\rightarrow \infty} \frac{|e_{k+1}|}{|e_k|^r} = C
+\end{equation*}
+\end{block}
+Newton's method is of order 2 (quadratic) when $f'(x_{*}) \ne 0$.
+\bigskip
+For $\xi$ between $x_k$ and $x_{*}$
+\begin{equation*}
+  f(x_{*}) = f(x_k) + (x_{*}-x_k)f'(x_k) + \frac{1}{2}(x_{*}-x_k)^2 f''(\xi) = 0
+\end{equation*}
+So
+\begin{equation*}
+  \frac{f(x_k)}{f'(x_k)} + x_{*}-x_k + (x_{*}-x_k)^2 \frac{f''(\xi)}{f'(x_k)} = 0
+\end{equation*}
+Then
+\begin{equation*}
+  x_{*}-x_{k+1} + (x_{*}-x_k)^2 \frac{f''(\xi)}{f'(x_k)} = 0
+\end{equation*}
+Thus
+\begin{equation*}
+  \frac{\left|x_{*}-x_{k+1}\right|}{\left|x_{*}-x_k\right|^2}  = \frac{f''(\xi)}{f'(x_k)}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Reciprocal Approximation}
+\begin{itemize}
+  \item Consider the task of computing $1/q$ for some $q$ without
+    using division.  
+  \item We can write this as: find the root $x$ of $f(x) = 1/(xq)-1 =
+    0$.
+  \item What is Newton's Method for this?
+  \item $f'(x) = -1/(x^2q)$.  Thus
+  \begin{equation*}
+       x_{n+1} = x_n - {f(x_n)\over f'(x_n)}
+  \end{equation*}
+  or 
+  \begin{equation*}
+       x_{n+1} = x_n - { 1/(x_nq)-1\over -1/(x_n^2q) } \onslide<2->{{ x_n^2q\over x_n^2q }}
+  \end{equation*}
+\onslide<2->{  \begin{equation*}
+       x_{n+1} = x_n + { x_n-x_n^2q } = 2x_n - x_n^2q
+  \end{equation*}}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Example: Compute 1/3}
+
+\begin{itemize}
+  \item Find the bracket:
+  \item $1/2 > 1/3 > 1/4$
+\end{itemize}
+\begin{enumerate}
+\item $x_0 = 1/4$
+\item $x_1 = 2 x_0 - x_0^2q = 1/2 - 3/16 = 5/16$
+\item $x_2 = 2 \times 5/2^4 - 3 \times 25/2^8 = (160-75)/2^8=85/2^8$
+\item $x_3 = 2 \times 85/2^8 - 3 \times 85^2/2^{16} = 21845/2^{16}$
+\end{enumerate}
+In $3$ steps, computed $16$ bits in $1/3$
+
+\begin{alertblock}{}
+How many binary digits are computed in the next step?
+\end{alertblock}
+
+\end{frame}
+
+\end{document}

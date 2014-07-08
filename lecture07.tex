@@ -1,0 +1,1068 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 7}
+\subtitle{Gaussian Elimination with Pivoting}
+\date{September 15, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Naive Gaussian Elimination Algorithm}
+
+\begin{itemize}
+  \item Forward Elimination
+  \item + Backward substitution
+  \item = Naive Gaussian Elimination
+\end{itemize}
+\vfill
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Goals for today$\ldots$}
+
+\begin{itemize}
+  \item Identify \emph{why} our basic GE method is ``naive'': identify where the
+errors come from?
+    \begin{itemize}
+      \item division by zero, near-zero
+    \end{itemize}
+  \item Propose strategies to eliminate the errors
+    \begin{itemize}
+      \item partial pivoting, complete pivoting, scaled partial pivoting
+    \end{itemize}
+  \item Investigate the cost: does pivoting cost too much?
+  \item Try to answer ``How \emph{accurately} can we solve a system with or
+without pivoting?''
+    \begin{itemize}
+      \item Analysis tools: norms, condition number, $\ldots$
+    \end{itemize}
+\end{itemize}
+\vfill
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Why is our basic GE ``naive''?}
+\begin{example}
+\begin{equation*}
+A=
+\begin{bmatrix}
+  0 & 2 & 3\\
+  4 & 5 & 6\\
+  7 & 8 & 9\\
+\end{bmatrix}
+\end{equation*}
+\end{example}
+\begin{example}
+\begin{equation*}
+A=
+\begin{bmatrix}
+  1e-10 & 2 & 3\\
+  4 & 5 & 6\\
+  7 & 8 & 9\\
+\end{bmatrix}
+\end{equation*}
+\end{example}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The Need for Pivoting}
+
+Solve:
+\begin{equation*}
+    A = \left[\negthickspace\begin{array}{rrrr}  2 &  4 & -2 & -2 \\
+                                                 1 &  2 &  4 & -3 \\
+                                                -3 & -3 &  8 & -2 \\
+                                                -1 &  1 &  6 & -3 \end{array}\negthickspace\right]
+    \ \ \ \ \ \ \ \ \
+    b = \left[\negthickspace\begin{array}{r} -4 \\  5 \\ 7 \\ 7 \end{array}\negthickspace\right]
+\end{equation*}
+
+Note that there is nothing "wrong" with this system.  $A$ is full
+rank.  The solution exists and is unique.
+
+Form the augmented system.
+\begin{equation*}
+%   \tilde{A} =
+    \left[
+           \left.\negthickspace\begin{array}{rrrr}  2 &  4 & -2 & -2 \\
+                                                    1 &  2 &  4 & -3 \\
+                                                   -3 & -3 &  8 & -2 \\
+                                                   -1 &  1 &  6 & -3 \end{array}
+           \right|\begin{array}{r} -4 \\  5 \\ 7 \\ 7 \end{array}\negthickspace\right]
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The Need for Pivoting}
+
+Subtract $1/2$ times the first row from the second row,\newline
+add $3/2$ times the first row to the third row,\newline
+add $1/2$ times the first row to the fourth row.
+
+The result of these operations is:
+\begin{equation*}
+    \left[
+           \left.\negthickspace\begin{array}{rrrr}  2 &  4 & -2 & -2 \\
+                                                    0 &  0 &  5 & -2 \\
+                                                    0 &  3 &  5 & -5 \\
+                                                    0 &  3 &  5 & -4 \end{array}
+           \right|\begin{array}{r} -4 \\ 7 \\ 1 \\ 5 \end{array}\negthickspace\right]
+\end{equation*}
+
+The \emph{next} stage of Gaussian elimination will not work because
+there is a zero in the \emph{pivot} location, $\tilde{a}_{22}$.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The Need for Pivoting}
+
+Swap second and fourth rows of the augmented matrix.
+\begin{equation*}
+    \left[
+           \left.\negthickspace\begin{array}{rrrr}  2 &  4 & -2 & -2 \\
+                                                    0 &  3 &  5 & -4 \\
+                                                    0 &  3 &  5 & -5 \\
+                                                    0 &  0 &  5 & -2 \end{array}
+           \right|\begin{array}{r} -4 \\  5 \\ 1 \\ 7 \end{array}\negthickspace\right]
+\end{equation*}
+
+Continue with elimination: subtract (1 times) row 2 from row 3.
+\begin{equation*}
+    \left[
+           \left.\negthickspace\begin{array}{rrrr}  2 &  4 & -2 & -2 \\
+                                                    0 &  3 &  5 & -4 \\
+                                                    0 &  0 &  0 & -1 \\
+                                                    0 &  0 &  5 & -2 \end{array}
+           \right|\begin{array}{r} -4 \\  5 \\ -4 \\ 7 \end{array}\negthickspace\right]
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The Need for Pivoting}
+
+Another zero has appear in the pivot position.  Swap row 3 and row 4.
+\begin{equation*}
+    \left[
+           \left.\negthickspace\begin{array}{rrrr}  2 &  4 & -2 & -2 \\
+                                                    0 &  3 &  5 & -4 \\
+                                                    0 &  0 &  5 & -2 \\
+                                                    0 &  0 &  0 & -1 \end{array}
+           \right|\begin{array}{r} -4 \\  5 \\ 7 \\ -4 \end{array}\negthickspace\right]
+\end{equation*}
+The augmented system is now ready for backward substitution.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{another example}
+\begin{equation*}
+\begin{bmatrix}
+  \varepsilon & 1\\
+  1 & 1\\
+\end{bmatrix}
+\begin{bmatrix}
+  x_1\\
+  x_2\\
+\end{bmatrix}
+=
+\begin{bmatrix}
+  1\\
+  2\\
+\end{bmatrix}
+\end{equation*}
+\begin{example}
+With Naive GE,
+\begin{equation*}
+\begin{bmatrix}
+  \varepsilon & 1\\
+  0 & (1-\frac{1}{\varepsilon})\\
+\end{bmatrix}
+\begin{bmatrix}
+  x_1\\
+  x_2\\
+\end{bmatrix}
+=
+\begin{bmatrix}
+  1\\
+  2-\frac{1}{\varepsilon}\\
+\end{bmatrix}
+\end{equation*}
+Solving for $x_1$ and $x_2$ we get
+\begin{align*}
+  x_2 & = \frac{2-1/\varepsilon}{1-1/\varepsilon}\\
+  x_1 & = \frac{1-x_2}{\varepsilon}\\
+\end{align*}
+For $\varepsilon \approx 10^{-20}$, $x_1 \approx 0$, $x_2 \approx 1$
+\end{example}
+% Note in exact arithmetic, x_1 approx 1+e, x_2 approx 1-e.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Pivoting Strategies}
+
+\textbf{Partial Pivoting:} Exchange only rows
+\begin{itemize}
+    \item   Exchanging rows does not affect the order of the $x_i$
+    \item   For increased numerical stability, make sure the
+            largest possible pivot element is used.  This requires
+            searching in the partial column below the pivot element.
+%             \begin{center}
+%                 \pgfimage[height=3cm]{./figs/selectPivot}
+%             \end{center}
+    \item   Partial pivoting is usually sufficient.
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Partial Pivoting}
+
+To avoid division by zero, swap the row having the zero
+pivot with one of the rows below it.
+\begin{center}
+    \vspace{3ex}
+    \pgfimage[height=3cm]{./figs/partialPivoting}
+    \vspace{3ex}
+\end{center}
+
+To minimize the effect of roundoff, always choose the row that puts the largest
+pivot element on the diagonal, i.e., find $i_p$ such that
+$|a_{i_p,i}|=\max(|a_{k,i}|)$ for $k=i,\ldots,n$
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Partial Pivoting: Usually sufficient, but not always}
+\begin{itemize}
+  \item Partial pivoting is {\underline{usually}} sufficient
+  \item Consider
+\begin{equation*}
+    \left[
+           \left.\negthickspace\begin{array}{rr}  2 &  2c\\
+                                                    1 &  1\end{array}
+           \right|\begin{array}{r} 2c \\ 2\end{array}\negthickspace\right]
+\end{equation*}
+With Partial Pivoting, the first row is the pivot row:
+\begin{equation*}
+    \left[
+           \left.\negthickspace\begin{array}{rr}  2 &  2c\\
+                                                    0 &  1-c\end{array}
+           \right|\begin{array}{r} 2c \\ 2-c\end{array}\negthickspace\right]
+\end{equation*}
+and for large $c$:
+\begin{equation*}
+    \left[
+           \left.\negthickspace\begin{array}{rr}  2 &  2c\\
+                                                    0 &  -c\end{array}
+           \right|\begin{array}{r} 2c \\ -c\end{array}\negthickspace\right]
+\end{equation*}
+so that $y=0$ and $x=1$. (exact is $x=y=1$)
+\item The pivot is selected as the largest in the column, but it should be the
+largest \underline{relative} to the full submatrix.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{More Pivoting Strategies}
+
+\textbf{Full (or Complete) Pivoting:} Exchange \emph{both} rows and columns
+\begin{itemize}
+    \item   Column exchange requires changing the order of the $x_i$
+    \item   For increased numerical stability, make sure the
+            largest possible pivot element is used.  This requires
+            searching in the pivot row, \emph{and} in all rows
+            below the pivot row, starting the pivot column.
+    \item   Full pivoting is less susceptible to roundoff, but the
+            increase in stability comes at a cost of more complex
+            programming (not a problem if you use a library routine)
+            and an increase in work associated with searching and
+            data movement.
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Full Pivoting}
+
+\vspace{3ex}
+\begin{center}
+    \pgfimage[height=5cm]{./figs/fullPivoting}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Scaled Partial Pivoting}
+We simulate full pivoting by using a scale with partial pivoting.
+\begin{itemize}
+  \item pick pivot element as the largest {\bf{relative}} entry in the
+column (relative to the other entries in the row)
+  \item do not swap, just keep track of the order of the pivot rows
+  \item call this vector ${\bf{\ell}} = [\ell_1,\dots,\ell_n]$.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{SPP Process}
+  \begin{enumerate}
+    \item Determine a scale vector {\bf{s}}.  For each row
+\begin{equation*}
+  s_i = \max_{1\leq j \leq n} |a_{ij}|
+\end{equation*}
+
+  \item initialize ${\bf{\ell}} = [\ell_1,\dots,\ell_n] = [1,\dots,n]$.
+  \item select row $j$ to be the row with the largest ratio
+  \begin{equation*}
+    \frac{|a_{\ell_i1}|}{s_{\ell_i}}\qquad 1\leq i\leq n
+\end{equation*}
+
+  \item swap $\ell_{j}$ with $\ell_{1}$ in ${\bf{\ell}}$
+
+  \item Now we need $n-1$ multipliers for the first column:
+  \begin{equation*}
+    m_1 = \frac{a_{\ell_{i}1}}{a_{\ell_{1}1}}
+\end{equation*}
+
+  \item So the index to the rows are being swapped, NOT the actual row
+vectors which would be expensive
+
+  \item finally use the multiplier $m_1$ times row $\ell_1$ to subtract
+from rows $\ell_i$ for $2 \leq i \leq n$
+\end{enumerate}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{SPP Process continued}
+\begin{enumerate}
+  \item For the second column in forward elimination, we select row $j$
+that yields the largest ratio of
+  \begin{equation*}
+    \frac{|a_{\ell_i,2}|}{s_{\ell_i}}\qquad 2\leq i\leq n
+\end{equation*}
+
+  \item swap $\ell_{j}$ with $\ell_{2}$ in ${\bf{\ell}}$
+
+  \item Now we need $n-2$ multipliers for the second column:
+  \begin{equation*}
+    m_2 = \frac{a_{\ell_{i},2}}{a_{\ell_{2}2}}
+\end{equation*}
+
+  \item finally use the multiplier $m_2$ times row $\ell_2$ to subtract
+from rows $\ell_i$ for $3 \leq i \leq n$
+
+  \item the process continues for row $k$
+
+  \item note: scale factors are \emph{not} updated
+\end{enumerate}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{An Example}
+Consider
+\begin{equation*}
+\begin{bmatrix}
+  2 & 4 & -2\\
+  1 & 3 & 4\\
+  5 & 2 & 0\\
+\end{bmatrix}
+\begin{bmatrix}
+  x_1\\
+  x_2\\
+  x_3\\
+\end{bmatrix}
+=
+\begin{bmatrix}
+  6\\
+  -1\\
+  2\\
+\end{bmatrix}
+\end{equation*}
+% Note: working this example out is a "Good Question" (see handout).
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Back Substitution$\ldots$}
+\begin{enumerate}
+  \item The first equation corresponds to the last index $\ell_n$:
+\begin{equation*}
+  a_{\ell_nn} x_n = b_{\ell_n} \,\,\Rightarrow\,\, x_n = \frac{b_{\ell_n}}{a_{\ell_nn}}
+\end{equation*}
+  \item The second equation corresponds to the second to last index
+$\ell_{n-1}$:
+\begin{equation*}
+  x_{n-1} = \frac{1}{a_{\ell_{n-1}n-1}}\left(b_{\ell_{n-1}} -
+a_{\ell_{n-1}n}x_n\right)
+\end{equation*}
+\end{enumerate}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile,shrink]
+\frametitle{The Algorithms}
+\begin{lstlisting}[mathescape,caption=(forward) GE with SPP]
+  Initialize ${\bf{\ell}}=[1,\dots,n]$
+  Set ${\bf{s}}$ to be the max of rows
+  for $k=1$ to $n$
+    $rmax = 0$
+    for $i=k$ to $n$
+      $r = |a_{\ell_ik}/s_{\ell_i}|$
+      if($r > rmax$)
+        $rmax=r$
+        $j=i$
+    end
+    swap $\ell_j$ and $\ell_k$
+    for $i=k+1$ to $n$
+      $xmult = a_{\ell_ik}/a_{\ell_kk}$
+      $a_{\ell_{ik}}=xmult$
+      for $j=k+1$ to $n$
+        $a_{\ell_ij} = a_{\ell_ij} - xmult\cdot a_{\ell_kj}$
+      end
+    end
+  end
+\end{lstlisting}
+See \emph{Gauss} algorithm on page 267 of NMC6 (p285 NMC5)
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile,shrink]
+Note: the multipliers are stored in the location $a_{\ell_ik}$ in the
+text
+\frametitle{The Algorithms}
+\begin{lstlisting}[mathescape,caption=(back solve) GE with SPP]
+  for $k=1$ to $n-1$
+    for $i= k+1$ to $n$
+      $b_{\ell_i} = b_{\ell_i} - a_{\ell_ik}b_{\ell_k}$
+    end
+  end
+  $x_n = b_{\ell_n}/a_{\ell_nn}$
+  for $i=n-1$ down to $1$
+    $sum = b_{\ell_i}$
+    for $j=i+1$ to $n$
+      $sum = sum - a_{\ell_ij}x_j$
+    end
+  end
+\end{lstlisting}
+See \emph{Gauss} algorithm on page 269 of NMC6 (p267 NMC5)
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Geometric Interpretation of Singularity}
+
+Consider a \matdim{2}{2} system describing two lines that intersect
+\begin{align*}
+    y &= -2x + 6 \\
+    y &= \ \ \frac{1}{2} x + 1
+\end{align*}
+The matrix form of this equation is
+\begin{equation*}
+    \left[\negthickspace\begin{array}{cr} 2 & 1 \\ -1/2 & 1 \end{array}\negthickspace\right]
+    \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}
+    =
+    \begin{bmatrix} 6 \\ 1 \end{bmatrix}
+\end{equation*}
+The equations for two \textbf{parallel} but \textbf{not intersecting} lines are
+\begin{equation*}
+    \begin{bmatrix} 2 & 1 \\ 2 & 1 \end{bmatrix}
+    \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}
+    =
+    \begin{bmatrix} 6 \\ 5 \end{bmatrix}
+\end{equation*}
+Here the coefficient matrix is singular ($\rank{A}=1$), and
+the system is inconsistent
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Geometric Interpretation of Singularity}
+
+The equations for two \textbf{parallel} and \textbf{coincident} lines are
+\begin{equation*}
+    \begin{bmatrix} 2 & 1 \\ 2 & 1 \end{bmatrix}
+    \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}
+    =
+    \begin{bmatrix} 6 \\ 6 \end{bmatrix}
+\end{equation*}
+
+The equations for two \textbf{nearly parallel} lines are
+\begin{equation*}
+    \begin{bmatrix} 2 & 1 \\ 2+\delta & 1 \end{bmatrix}
+    \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}
+    =
+    \begin{bmatrix} 6 \\ 6+\delta \end{bmatrix}
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Geometric Interpretation of Singularity}
+
+\begin{center}
+    \pgfimage[height=7cm]{./figs/systemTypes}
+\end{center}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Effect of Perturbations to $b$}
+
+Consider the solution of a \matdim{2}{2} system where
+\begin{equation*}
+    b = \begin{bmatrix}1 \\ 2/3 \end{bmatrix}
+\end{equation*}
+One expects that the
+\emph{exact} solutions to
+\begin{equation*}
+    Ax = \begin{bmatrix}1 \\ 2/3 \end{bmatrix}
+    \ \ \ \ \ \ \ \ \
+    \text{and}
+    \ \ \ \ \ \ \ \ \
+    Ax = \begin{bmatrix}1 \\ 0.6667 \end{bmatrix}
+\end{equation*}
+will be different.  Should these solutions be a \textbf{lot different}
+or a \textbf{little different}?
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Norms}
+Vectors:
+\begin{align*}
+    \|x\|_{p} &= \bigl( |x_1|^p + |x_2|^p + \ldots + |x_n|^p \bigr)^{1/p}\\
+    \|x\|_{1} &= |x_1| + |x_2| + \ldots + |x_n| = \sum_{i=1}^{n}{|x_i|}\\
+    \|x\|_{\infty} &= \max \left(|x_1|, |x_2|, \ldots, |x_n| \right)
+                      = \underset{i}{\max} \left( |x_i| \right)
+\end{align*}
+Matrices:
+\begin{align*}
+  \|A\| &= \max_{x\ne 0} \frac{\|Ax\|}{\|x\|}\\
+  \|A\|_p &= \max_{x\ne 0} \frac{\|Ax\|_p}{\|x\|_p}\\
+  \|A\|_1 &= \max_{1\leq j \leq n} \sum_{i=1}^{m}|a_{ij}|\\
+  \|A\|_{\infty} &= \max_{1\leq i \leq m} \sum_{j=1}^{n}|a_{ij}|
+\end{align*}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Effect of Perturbations to $b$}
+
+Perturb $b$ with $\delta b$ such that
+\begin{equation*}
+    \frac{\norm{\delta b}}{\norm{b}} \ll 1,
+\end{equation*}
+The perturbed system is
+\begin{equation*}
+    A (x + \delta x_b) = b + \delta b
+\end{equation*}
+The perturbations satisfy
+\begin{equation*}
+    A \delta x_b = \delta b
+\end{equation*}
+
+
+Analysis shows (see next two slides for proof) that
+\begin{equation*}
+    \frac{\norm{\delta x_b}}{\norm{x}} \le \norm{A}\norm{A^{-1}} \frac{\norm{\delta b}}{{\norm{b}}}
+\end{equation*}
+
+Thus, the effect of the perturbation is small
+\emph{only if} $\norm{A}\norm{A^{-1}}$ is small.
+\begin{equation*}
+    \frac{\norm{\delta x_b}}{\norm{x}} \ll 1
+    \ \ \ \ \text{only if}
+    \ \ \ \ \norm{A}\norm{A^{-1}} \sim 1
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Effect of Perturbations to $b$ (Proof)}
+
+
+Let $x + \delta x_b$ be the \emph{exact} solution to the perturbed system
+\begin{equation}   \label{eq:axdb}
+    A (x + \delta x_b) = b + \delta b
+\end{equation}
+Expand
+\begin{equation*}
+    Ax + A \delta x_b = b + \delta b
+\end{equation*}
+Subtract $Ax$ from left side and $b$ from right side since $Ax=b$
+\begin{equation*}
+    A \delta x_b = \delta b
+\end{equation*}
+Left multiply by $A^{-1}$
+\begin{equation}   \label{eq:dxb}
+    \delta x_b = A^{-1} \delta b
+\end{equation}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Effect of Perturbations to $b$ (Proof, p. 2)}
+
+Take norm of equation~\eqref{eq:dxb}
+\begin{equation*}
+    \norm{\delta x_b} = \norm{A^{-1}\,\delta b}
+\end{equation*}
+Applying consistency requirement of matrix norms
+\begin{equation}   \label{eq:normdxb}
+    \norm{\delta x} \le \norm{A^{-1}}\norm{\delta b}
+\end{equation}
+Similarly, $Ax=b$ gives $\norm{b} = \norm{Ax}$, and
+\begin{equation}   \label{eq:normb}
+    \norm{b} \le \norm{A}\norm{x}
+\end{equation}
+Rearrangement of equation~\eqref{eq:normb} yields
+\begin{equation}     \label{eq:normxi}
+    \frac{1}{\norm{x}} \le \frac{\norm{A}}{\norm{b}}
+\end{equation}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Effect of Perturbations to $b$ (Proof)}
+
+
+Multiply Equation~\eqref{eq:normb} by Equation~\eqref{eq:normdxb} to get
+\begin{equation}    \label{eq:dxbonx}
+    \frac{\norm{\delta x_b}}{\norm{x}} \le \norm{A}\norm{A^{-1}} \frac{\norm{\delta b}}{{\norm{b}}}
+\end{equation}
+
+\begin{center}
+\begin{minipage}{0.75\textwidth}
+\textbf{Summary:}\par\vspace{1ex}
+If $x + \delta x_b$ is the \emph{exact} solution to the perturbed system
+\begin{equation*}
+    A (x + \delta x_b) = b + \delta b
+\end{equation*}
+then
+\begin{equation*}
+    \frac{\norm{\delta x_b}}{\norm{x}} \le \norm{A}\norm{A^{-1}} \frac{\norm{\delta b}}{{\norm{b}}}
+\end{equation*}
+\end{minipage}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Effect of Perturbations to $A$}
+
+Perturb $A$ with $\delta A$ such that
+\begin{equation*}
+    \frac{\norm{\delta A}}{\norm{A}} \ll 1,
+\end{equation*}
+The perturbed system is
+\begin{equation*}
+    (A + \delta A) (x + \delta x_A) = b
+\end{equation*}
+
+Analysis shows that
+\begin{equation*}
+    \frac{\norm{\delta x_A}}{\norm{x + \delta x_A}} \le \norm{A}\norm{A^{-1}} \frac{\norm{\delta A}}{\norm{A}}
+\end{equation*}
+
+Thus, the effect of the perturbation is small
+\emph{only if} $\norm{A}\norm{A^{-1}}$ is small.
+\begin{equation*}
+    \frac{\norm{\delta x_A}}{\norm{x + \delta x_A}} \ll 1
+    \quad \text{only if}
+    \quad \norm{A}\norm{A^{-1}} \sim 1
+\end{equation*}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Effect of Perturbations to both $A$ and $b$}
+
+Perturb both $A$ with $\delta A$ and $b$ with $\delta b$ such that
+\begin{equation*}
+    \frac{\norm{\delta A}}{\norm{A}} \ll 1
+    \quad\text{and}\quad
+    \frac{\norm{\delta b}}{\norm{b}} \ll 1
+\end{equation*}
+The perturbation satisfies
+\begin{equation*}
+    (A + \delta A) (x + \delta x) = b + \delta b
+\end{equation*}
+Analysis shows that
+\begin{equation*}
+    \frac{\norm{\delta x}}{\norm{x + \delta x}}
+    \ \ \le \ \ \frac{\norm{A}\norm{A^{-1}}}{\ \ 1-\norm{A}\norm{A^{-1}} \frac{\norm{\delta A}}{\norm{A}} \ \ }
+        \left[ \frac{\norm{\delta A}}{\norm{A}} + \frac{\norm{\delta b}}{\norm{b}}\right]
+\end{equation*}
+Thus, the effect of the perturbation is small
+\emph{only if} $\norm{A}\norm{A^{-1}}$ is small.
+\begin{equation*}
+    \frac{\norm{\delta x}}{\norm{x + \delta x}} \ll 1
+    \quad \text{only if} \quad
+    \norm{A}\norm{A^{-1}} \sim 1
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Condition number of $A$}
+
+The \textbf{condition number}
+\begin{equation*}
+    \kappa(A) \equiv \norm{A}\norm{A^{-1}}
+\end{equation*}
+indicates the sensitivity of the solution to perturbations in $A$ and $b$. The
+condition number can be measured with any $p$-norm.
+
+The condition number is always in the range
+\begin{equation*}
+    1 \le \kappa(A) \le \infty
+\end{equation*}
+\begin{quote}
+\begin{itemize}
+    \item   $\kappa(A)$ is a mathematical property of $A$
+    \item   \emph{Any} algorithm will produce a solution that is sensitive
+            to perturbations in $A$ and $b$ if $\kappa(A)$ is large.
+    \item   In exact math a matrix is either singular or non-singular.
+            $\kappa(A)=\infty$ for a singular matrix
+    \item   $\kappa(A)$ indicates how close
+            $A$ is to being \emph{numerically} singular.
+    \item   A matrix with large $\kappa$ is said to be \textbf{ill-conditioned}
+\end{itemize}
+\end{quote}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Computational Stability}
+
+\textbf{In Practice}, applying Gaussian elimination with
+partial pivoting and back substitution to $Ax=b$ gives the \textbf{exact
+solution}, $\hat{x}$, to the \textbf{nearby problem}
+\begin{equation*}
+    (A + E)\hat{x} = b
+    \ \ \ \
+    \text{where}
+    \ \ \ \
+    \|E\|_{\infty} \le  \epsm \|A\|_{\infty}
+\end{equation*}
+\begin{quote}
+    Gaussian elimination with partial pivoting and back substitution
+    ``gives exactly the right answer to nearly the right question.''
+    \par\hfill{--- Trefethen and Bau}
+\end{quote}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Computational Stability}
+
+An algorithm that gives the exact answer to a problem that is
+near to the original problem is said to be \textbf{backward stable}.
+Algorithms that are not backward stable will tend to amplify
+roundoff errors present in the original data.  As a result, the
+solution produced by an algorithm that is not backward stable will
+not necessarily be the solution to a problem that is close to the
+original problem.
+
+Gaussian elimination without partial pivoting is \emph{not}
+backward stable for arbitrary $A$.  
+
+If $A$ is symmetric and positive
+definite, then Gaussian elimination without pivoting in backward stable.
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The Residual}
+
+Let $\hat{x}$ be the numerical solution to $Ax=b$.
+$\hat{x}\neq x$  ($x$ is the exact solution) because of roundoff.
+
+The \textbf{residual} measures how close $\hat{x}$ is to satisfying
+the original equation
+\begin{equation*}
+    r = b - A\hat{x}
+\end{equation*}
+
+It is not hard to show that
+\begin{equation*}
+    \frac{\norm{\hat{x} - x}}{\norm{\hat{x}}}
+       \ \le\ \kappa(A) \frac{\norm{r}}{\norm{b}}
+\end{equation*}
+
+Small \norm{r} does not guarantee a small \norm{\hat{x}-x}.
+
+If $\kappa(A)$ is large the $\hat{x}$ returned by Gaussian
+elimination and back substitution (or any other solution method) is \emph{not}
+guaranteed to be anywhere near the true solution to $Ax=b$.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Rules of Thumb}
+
+\begin{itemize}
+    \item   Applying Gaussian elimination with partial pivoting and
+            back substitution to $Ax=b$ yields a numerical solution
+            $\hat{x}$ such that the residual vector $r=b-A\hat{x}$ is
+            small \emph{even if} the $\kappa(A)$ is large.
+    \item   If $A$ and $b$ are stored to machine precision $\epsm$, the
+            numerical solution to $Ax=b$ by any variant of Gaussian
+            elimination is correct to $d$ digits where
+\begin{equation*}
+                d = | \log_{10}(\epsm)| - \log_{10}\left(\kappa(A)\right)
+\end{equation*}
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Rules of Thumb}
+
+\begin{equation*}
+	d = | \log_{10}(\epsm)| - \log_{10}\left(\kappa(A)\right)
+\end{equation*}
+
+\textbf{Example:}\par
+MATLAB\ computations have $\epsm\approx 2.2\times10^{-16}$.  For a system
+with $\kappa(A)\sim10^{10}$ the elements of the solution vector will have
+\begin{align*}
+    d &= | \log_{10}(2.2\times10^{-16})| - \log_{10}\left(10^{10}\right) \\
+      &= 16 - 11  \\
+      &= 5
+\end{align*}
+correct (decimal) digits
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Summary of Limits to Numerical Solution of $Ax=b$}
+
+\begin{enumerate}
+    \item   $\kappa(A)$ indicates how close $A$ is to being numerically singular
+    \item   If $\kappa(A)$ is ``large'', $A$ is \textbf{ill-conditioned} and
+            \emph{even the best} numerical algorithms will produce a solution,
+            $\hat{x}$ that cannot be guaranteed to be close to the true
+            solution, $x$
+    \item   In practice, Gaussian elimination with partial pivoting and
+            back substitution produces a solution with a small residual
+\begin{equation*}
+                r = b - A\hat{x}
+\end{equation*}
+            \emph{even if} $\kappa(A)$ is large.
+\end{enumerate}
+
+% ----------------------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{The Backslash Operator}
+
+Consider the scalar equation
+\begin{equation*}
+    5x = 20
+    \qquad
+    \Longrightarrow
+    \qquad
+    x = (5)^{-1}20
+\end{equation*}
+% The value of $x$ is computed by multiplication of 20 by the inverse of 5.
+
+The extension to a system of equations is, of course
+\begin{equation*}
+    Ax = b
+    \qquad
+    \Longrightarrow
+    \qquad
+    x = A^{-1}b
+\end{equation*}
+where $A^{-1}b$ is the formal solution to $Ax=b$
+
+In MATLAB\ notation the system is solved with
+\begin{lstlisting}[language=matlab]
+    x = A\b
+\end{lstlisting}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{The Backslash Operator}
+
+Given an \matdim{n}{n} matrix $A$, and an \matdim{n}{1} vector $b$
+the \verb|\| operator performs a sequence of tests on the $A$ matrix.
+MATLAB\ attempts to solve the system with the method that gives the
+least roundoff and the fewest operations.
+
+When $A$ is an \matdim{n}{n} matrix:
+\vspace{0.0cm}
+\begin{enumerate}
+    \item   MATLAB\ examines $A$ to see if it is a permutation of a triangular system
+            \begin{itemize}
+                \item[]   If so, the appropriate triangular solve is used.
+            \end{itemize}
+            \vspace{3ex}
+
+    \item   MATLAB\ examines $A$ to see if it \emph{appears} to be symmetric and positive
+            definite.
+           \begin{itemize}
+                \item[]   If so, MATLAB\ attempts a Cholesky factorization\newline
+                          and two triangular solves.
+           \end{itemize}
+            \vspace{3ex}
+
+    \item   If the Cholesky factorization fails, or if $A$ does not appear to
+            be symmetric,
+            \begin{itemize}
+           \item[] MATLAB\ attempts an $LU$ factorization\newline
+                    and two triangular solves.
+        \end{itemize}
+\end{enumerate}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

@@ -1,0 +1,833 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+\usepackage{hyperref}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 9}
+\subtitle{Banded, $LU$, Cholesky}
+\date{September 22, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{More Algorithms for Special Systems}
+  \begin{itemize}
+    \item tridiagonal systems
+    \item banded systems
+    \item $LU$ decomposition
+    \item Cholesky factorization
+  \end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Tridiagonal}
+A tridiagonal matrix $A$
+\begin{equation*}
+  \begin{bmatrix}
+d_1 & c_1 &       &         &       &       &          &    \\
+a_1 & d_2 & c_2   &         &       &       &          &    \\
+    & a_2 & d_3   & c_3     &       &       &          &    \\
+    &     & \dots & \dots   & \dots &       &          &    \\
+    &     &       & a_{i-1} & d_i   & c_{i} &          &    \\
+    &     &       &         & \dots & \dots & \dots    &    \\
+    &     &       &         & \dots & \dots & \dots    &    \\
+    &     &       &         &       &       & a_{n-1}  & d_n   \\
+  \end{bmatrix}
+\end{equation*}
+\begin{itemize}
+  \item storage is saved by not saving zeros
+  \item only $n+2(n-1) = 3n-2$ places are needed to store the matrix
+versus $n^2$ for the whole system
+  \item can operations be saved?  yes!
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Tridiagonal}
+\begin{equation*}
+  \begin{bmatrix}
+d_1 & c_1 &       &         &       &       &          &    \\
+a_1 & d_2 & c_2   &         &       &       &          &    \\
+    & a_2 & d_3   & c_3     &       &       &          &    \\
+    &     & \dots & \dots   & \dots &       &          &    \\
+    &     &       & a_{i-1} & d_i   & c_{i} &          &    \\
+    &     &       &         & \dots & \dots & \dots    &    \\
+    &     &       &         & \dots & \dots & \dots    &    \\
+    &     &       &         &       &       & a_{n-1}  & d_n   \\
+  \end{bmatrix}
+\end{equation*}
+Start forward elimination (without any special pivoting)
+\begin{enumerate}
+  \item subtract $a_1/d_1$ times row 1 from row 2
+  \item this eliminates $a_1$, changes $d_2$ and does not touch $c_2$
+  \item continuing:
+\begin{equation*}
+  d_{i} = d_{i} - \left(\frac{a_{i-1}}{d_{i-1}} c_{i-1}\right)
+\end{equation*}
+for $i=2\dots n$
+\end{enumerate}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Tridiagonal}
+\begin{equation*}
+  \begin{bmatrix}
+{\tilde{d}}_1 & c_1 &       &         &       &       &          &    \\
+ & {\tilde{d}}_2 & c_2   &         &       &       &          &    \\
+    & & {\tilde{d}}_3   & c_3     &       &       &          &    \\
+    &     &  & \dots   & \dots &       &          &    \\
+    &     &       &  & {\tilde{d}}_i   & c_{i} &          &    \\
+    &     &       &         & & \dots & \dots    &    \\
+    &     &       &         & & \dots & \dots    &    \\
+    &     &       &         &       &       & & {\tilde{d}}_n   \\
+  \end{bmatrix}
+\end{equation*}
+This leaves an upper triangular (2-band).  With back substitution:
+\begin{enumerate}
+  \item $x_n = {\tilde{b}}_n/{\tilde{d}}_n$
+  \item $x_{n-1} = (1/{\tilde{d}}_{n-1})({\tilde{b}}_{n-1} - c_{n-1}x_n)$
+  \item $x_{i} = (1/{\tilde{d}}_{i})({\tilde{b}}_{i} - c_{i}x_{i+1})$
+\end{enumerate}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Tridiagonal Algorithm}
+\begin{lstlisting}[mathescape]
+  input: $n, a, d, c, b$
+  for $i=2$ to $n$
+    $xmult = a_{i-1}/d_{i-1}$
+    $d_i = d_i - xmult \cdot c_{i-1}$
+    $b_i = b_i - xmult \cdot b_{i-1}$
+  end
+  $x_{n} = b_{n}/d_{n}$
+  for $i=n-1$ down to $1$
+    $x_{i} = (b_{i} - c_{i} x_{i+1})/d_{i}$
+  end
+\end{lstlisting}
+
+% Students did not get, JBS Fall, 2009
+%\begin{alertblock}{}
+%Challenge: Will this algorithm make good use of the processor cores in
+%a multicore processor?  Why or why not? 
+%\end{alertblock}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$m$-band}
+\begin{tabular}{c c c}
+\pgfimage[width=0.3\textwidth]{./figs/band5} & 
+\pgfimage[width=0.3\textwidth]{./figs/band11} & 
+\pgfimage[width=0.3\textwidth]{./figs/band11b}\\
+$m=5$ & $m=11$ & $m=11$\\
+\end{tabular}
+\begin{itemize}
+  \item the $m$ correspond to the total width of the non-zeros
+  \item after a few passes of GE \emph{fill-in} with occur within the band
+  \item so an empty band costs (about) the same as a non-empty band
+  \item one fix: reordering (e.g. Cuthill-McKee)
+  \item generally GE will cost $\mathcal{O}(m^2 n)$ for $m$-band systems
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Motivation: Graph Theory}
+\begin{itemize}
+    \item Given a graph, construct associated matrix, called the graph Laplacian
+    \item Row $i$ of matrix corresponds to node $i$ of graph
+    \begin{itemize}
+        \item Diagonal entry is valence (total \# of edges) for node $i$
+        \item Place a negative one in column $j$ if node $j$ is connected to $i$
+    \end{itemize}
+\end{itemize}
+\begin{minipage}{.4\linewidth} 
+\bigskip
+\begin{center}
+    \pgfimage[height=3cm]{./figs/graph1}
+\end{center}
+\end{minipage}
+$\;\; \Rightarrow \;\;$
+\begin{minipage}{.4\linewidth} 
+\bigskip
+\begin{center}
+\begin{equation*}
+       \begin{bmatrix} \phantom{-} 2  & -1            &  \phantom{-}0 &  \phantom{-}0 &            -1 &  \phantom{-}0 \\ 
+                       -1             &  \phantom{-}3 & -1            &  \phantom{-}0 &            -1 &  \phantom{-}0 \\ 
+                        \phantom{-}0  & -1            &  \phantom{-}2 &            -1 &  \phantom{-}0 &  \phantom{-}0 \\ 
+                        \phantom{-}0  &  \phantom{-}0 & -1            & \phantom{-} 3 &            -1 & -1 \\ 
+                       -1             & -1            &  \phantom{-}0 & -1            &  \phantom{-}3 &  \phantom{-}0 \\ 
+                        \phantom{-}0  &  \phantom{-}0 &  \phantom{-}0 & -1            &  \phantom{-}0 &  \phantom{-}1  
+        \end{bmatrix}
+\end{equation*}
+\end{center}
+\end{minipage}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Motivation: Graph Theory}
+Graph is Laplacian useful for
+\begin{itemize}
+    \item Calculating spanning trees
+    \item Partitioning a graph evenly
+    \item and many more....
+\end{itemize}
+\bigskip
+To use the graph Laplacian, you need to solve $A x = b$\\for many different vectors, $b$.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Motivation: Graph Theory (Multiple Right Hand Sides)}
+\begin{itemize}
+    \item Solve $A x = b$ for many different $b$ vectors
+    \item For $k$ different $b$ vectors, Gaussian Elimination costs $\mO(k n^3)$
+    \item We can do better:  $LU$ factorization
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Motivation: Symmetric Matrix} 
+\begin{itemize}
+    \item $A$ is symmetric, if $A = A^T$
+    \item If $A = L U$ and $A$ is symmetric, then could $L = U^T$?
+    \item If so, this could save 50\% of the computation of $LU$ by only calculating $L$
+    \item Save 50\% of the FLOPS!
+    \item This is achievable: $L D L^T$ and Cholesky ($L^T L$) factorization
+\end{itemize}
+\begin{alertblock}{}
+Run \texttt{test\_slash.m}
+\end{alertblock}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Factorization Methods}
+Factorizations are the common approach to solving $Ax=b$:\\ simply organized
+Gaussian elimination.
+\bigskip
+
+Goals for today:
+\begin{itemize}
+    \item   $LU$ factorization
+    \item   Cholesky factorization
+    \item   Use of the backslash operator
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Factorization}
+
+Find $L$ and $U$ such that
+\begin{equation*}
+    A = LU
+\end{equation*}
+\emph{and} $L$ is lower triangular, and $U$ is upper triangular.
+\begin{equation*}
+    L = \begin{bmatrix}   1       &     0      & \cdots &             & 0 \\
+                       \ell_{2,1} &     1      &   0    &             & 0 \\
+                       \ell_{3,1} & \ell_{3,2} &   1    &             & 0 \\
+                          \vdots  &  \vdots    &        & \ddots      & \vdots  \\
+                       \ell_{n,1} & \ell_{n,2} & \cdots & \ell_{n-1,n} & 1
+        \end{bmatrix}
+\end{equation*}
+\begin{equation*}
+    U = \begin{bmatrix} u_{1,1} & u_{1,2} & u_{1,3} & \cdots & u_{1,n} \\
+                          0     & u_{2,2} & u_{2,3} & \cdots & u_{2,n} \\
+                          0     &   0     & \ddots  & \ddots & \vdots \\
+                         \vdots & \vdots  &         &        & u_{n-1,n} \\
+                          0     &   0     &         &        & u_{n,n}
+        \end{bmatrix}
+\end{equation*}
+Since $L$ and $U$ are triangular, it is easy to apply their inverses.
+
+% ----------------------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Why?}
+\begin{itemize}
+    \item Since $L$ and $U$ are triangular, it is easy, $\mO(n^2)$, to apply their inverses
+    \item Decompose once, solve $k$ right-hand sides quickly:
+        \begin{itemize}
+            \item $\mO(kn^3)$ with GE
+            \item $\mO(n^3 + kn^2)$ with $LU$
+        \end{itemize}
+    \item  Given $A=LU$ you can compute $A^{-1}$, $det(A)$, $rank(A)$,
+$ker(A)$, etc...
+\end{itemize}
+
+
+% ----------------------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Factorization}
+
+Since $L$ and $U$ are triangular, it is easy to apply their inverses.
+
+Consider the solution to $Ax=b$.
+\begin{equation*}
+    A = LU \Longrightarrow (LU)x = b
+\end{equation*}
+Regroup since matrix multiplication is associative
+\begin{equation*}
+    L(Ux) = b
+\end{equation*}
+Let $Ux=y$, then
+\begin{equation*}
+    Ly = b
+\end{equation*}
+Since $L$ is triangular it is easy (without Gaussian elimination) to compute
+\begin{equation*}
+    y = L^{-1}b
+\end{equation*}
+This expression should be interpreted as ``Solve $Ly=b$ with forward substitution.''
+
+% ----------------------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Factorization}
+
+Now, since $y$ is known, solve for $x$
+\begin{equation*}
+    x = U^{-1}y
+\end{equation*}
+which is interpreted as ``Solve $Ux=y$ with backward substitution.''
+
+% ----------------------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{$LU$ Factorization}
+\lstset{language=,}
+\begin{lstlisting}[mathescape,caption=LU Solve,label=algo:LUfactSolve]
+  Factor $A$ into $L$ and $U$
+  Solve $Ly = b$ for $y$               use forward substitution
+  Solve $Ux = y$ for $x$               use backward substitution
+\end{lstlisting}
+\lstset{language=matlab,}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Factorization}
+\begin{itemize}
+    \item If we have $Ax=b$ and perform GE we end up with
+\begin{equation*}
+    A = 
+    \begin{bmatrix}
+    x & x & x & x\\
+    x & x & x & x\\
+    x & x & x & x\\
+    x & x & x & x\\
+    \end{bmatrix}
+    \Rightarrow
+    \begin{bmatrix}
+    x' & x' & x' & x'\\
+    0  & x' & x' & x'\\
+    0  & 0  & x' & x'\\
+    0  & 0  & 0  & x'\\
+    \end{bmatrix}
+\end{equation*}
+    \item Remember from Lecture 6, that naive Gaussian Elimination can be done by matrix multiplication
+        \[ MAx = Mb \] 
+        \[ \phantom{M}Ux = Mb \] 
+    \item $MA$ is upper triangular and called $U$
+    \item $M$ is the elimination matrix
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Factorization}
+As an example take one column step of GE, $A$ becomes
+\begin{equation*}
+    \begin{bmatrix}
+    6 & -2 & 2 & 4\\
+    12 & -8 & 6 & 10\\
+    3 & -13 & 9 & 3\\
+    -6 & 4 & 1 & -18\\
+    \end{bmatrix}
+    \rightarrow
+    \begin{bmatrix}
+    6 & -2 & 2 & 4\\
+    0 & -4 & 2 & 2\\
+    0 & -12 & 8 & 1\\
+    0 & 2 & 3 & -14\\
+    \end{bmatrix}
+\end{equation*}
+using the elimination matrix
+\begin{equation*}
+    M_1 = 
+    \begin{bmatrix}
+    1 & 0 & 0 & 0\\
+    -2 & 1 & 0 & 0\\
+    -\frac{1}{2} & 0 & 1 & 0\\
+    1 & 0 & 0 & 1\\
+    \end{bmatrix}
+\end{equation*}
+So we have performed
+\[
+M_1 A x = M_1 b
+\]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Factorization}
+From Lecture 6
+\begin{itemize}
+    \item Inverting $M_i$ is easy: just flip the sign of the lower triangular entries
+            \[
+                M_1 = 
+                \begin{bmatrix}
+                1 & 0 & 0 & 0\\
+                -2 & 1 & 0 & 0\\
+                -\frac{1}{2} & 0 & 1 & 0\\
+                1 & 0 & 0 & 1\\
+                \end{bmatrix}
+                \;\;\Rightarrow \;\;
+                M_1^{-1} = 
+                \begin{bmatrix}
+                1 & 0 & 0 & 0\\
+                2 & 1 & 0 & 0\\
+                \frac{1}{2} & 0 & 1 & 0\\
+                -1 & 0 & 0 & 1\\
+                \end{bmatrix}
+            \]
+    \item $M_i^{-1}$ is just the multipliers used in Gaussian Elimination!
+    \item $M_i^{-1} M_j^{-1}$ is still lower triangular, for $i < j$, \\
+          and is the union of the columns
+    \item $M_1^{-1} M_2^{-1}\ldots M_j^{-1}$ is lower triangular, with the lower triangle 
+          the multipliers from Gaussian Elimination 
+\end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Factorization}
+\begin{itemize}
+    \item Zeroing each column yields another elimination matrix operation:
+        \[ M_3 M_2 M_1 A x = M_3 M_2 M_1 b \]
+    \item $M=M_3 M_2 M_1$.  Thus
+    \item $L= M_1^{-1} M_2^{-1} M_3^{-1}$ is lower triangular 
+\end{itemize}
+\begin{align*}
+            M A   & = U      \\
+    M_3 M_2 M_1 A & = U     \\
+                A & = M_1^{-1} M_2^{-1} M_3^{-1} U \\
+                A & = L U
+\end{align*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{$LU$ (forward elimination) Algorithm}
+
+\begin{lstlisting}[mathescape,caption=$LU$,label=algo:LU]
+  given $A$
+                               
+  for $k=1\dots n-1$          
+    for $i = k+1\ldots n$      
+      $xmult = a_{ik}/a_{kk}$
+      $a_{ik} = xmult$
+      for $j = k+1\ldots n$      
+        $a_{ij} = a_{ij} - (xmult) a_{kj}$
+      end                      
+    end                        
+  end                          
+\end{lstlisting}
+%      $b_{i} = b_{i} - (xmult) b_{k}$
+\begin{itemize}
+    \item $U$ is stored in the upper triangular portion of $A$
+    \item $L$ (without the diagonal) is stored in the lower triangular
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Doolittle Factorization ($LU$)}
+
+\begin{lstlisting}[mathescape,caption=Doolittle,label=algo:doolittle]
+  given $A$
+  output $L$, $U$
+                               
+  for $k=1\dots n$          
+    $\ell_{kk} = 1$
+    for $j = k \ldots n$      
+        $u_{kj} = a_{kj} - \sum_{i=1}^{k-1}\ell_{ki} u_{ij}$
+    end
+    for $j = k+1 \dots n$
+        $\ell_{jk} = \left(a_{jk} - \sum_{i=1}^{k-1} \ell_{ji}
+u_{ik}\right)/u_{kk}$
+    end
+  end                          
+\end{lstlisting}
+\begin{itemize}
+    \item Mathematically the same as previous $LU$ 
+    \item Difference is we now explicitly form $L$ and $U$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{What About Pivoting?}
+\begin{itemize}
+    \item Pivoting (that is row exhanges) can be expressed in terms of matrix multiplication
+    \item Do pivoting during elimination, but track row exchanges in order to express pivoting with matrix $P$
+    \item Let $P$ be all zeros
+    \begin{itemize}
+        \item Place a $1$ in column $j$ of row 1 to exchange row 1 and row $j$
+        \item If no row exchanged needed, place a $1$ in column $1$ of row $1$
+        \item \emph{Repeat for all rows of $P$}
+    \end{itemize}
+    \item $P$ is a permutation matrix
+    \item Now using pivoting,
+            \[ L U = P A \]
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile,shrink]
+\frametitle{MATLAB $LU$}
+Like GE, $LU$ needs pivoting.  With pivoting the $LU$ factorization always
+exists, even if $A$ is singular.  With pivoting, we get
+\[ LU = PA\]
+\begin{lstlisting}
+>> A=rand(4,4);
+>> b=rand(4,1);
+>> [L,U,P]=lu(A)
+L = 1.0000         0         0         0
+    0.9013    1.0000         0         0
+    0.0298   -0.8982    1.0000         0
+    0.7233    0.5813   -0.2670    1.0000
+U = 0.7809    0.9890    0.4613    0.2971
+         0   -0.8838   -0.0548    0.1857
+         0         0    0.7183    0.6403
+         0         0         0    0.2065
+P =  0     1     0     0
+     1     0     0     0
+     0     0     0     1
+     0     0     1     0
+>> x=U\(L\(P*b)) 
+x = 0.5326 0.5416 -1.2765 1.1315
+>> A\b
+    0.5326 0.5416 -1.2765 1.1315
+\end{lstlisting}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LU$ Tutorial Module}
+\begin{center}
+\small
+\url{http://www.cse.illinois.edu/iem/linear_equations/gaussian_elimination/}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Use SYMMETRY ! YRTEMMYS esU}
+\begin{itemize}
+    \item Suppose \[A = LU, \;\; \mbox{and} \;\; A = A^T\]
+    \item Then 
+          \[ LU = A = A^T = (LU)^T = U^T L^T \]
+    \item Thus 
+          \[ U = L^{-1} U^T L^T \]
+          and 
+          \[ U (L^{T})^{-1} = L^{-1} U^T = D \]
+    \item We can conclude that 
+          \[ U = DL^T \]
+          and
+          \[ A = LU = L D L^T \]
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Symmetric Doolittle Factorization ($LDL^T$)}
+
+\begin{lstlisting}[mathescape,caption=Symm Doolittle,label=algo:symmdoolittle]
+  given $A$
+  output $L$, $D$
+                               
+  for $k=1\dots n$          
+    $\ell_{kk} = 1$
+
+    $d_k = a_{kk} - \sum_{\nu=1}^{k-1} d_{\nu} \ell_{k\nu}^2$
+
+    for $j = k+1 \ldots n$      
+        $\ell_{kj} = 0$
+        $\ell_{jk} = \left( a_{jk} - \sum_{\nu=1}^{k-1}
+\ell_{j\nu}d_{\nu}\ell_{k\nu} \right)/ d_k$
+    end
+  end                          
+\end{lstlisting}
+\begin{itemize}
+%    \item $U$ is stored in the upper triangular portion of $A$
+%    \item $D$ is stored on the diagonal of $A$
+%    \item $L$ is typically stored in the lower triangular of $A$
+    \item Special form of the Doolittle factorization
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$LL^T$: Cholesky Factorization}
+
+\begin{itemize}
+    \item $A$ must be symmetric and positive definite (SPD)
+    \item $A$ is Positive Definite (PD) if for all $x \ne 0$ the following holds
+          \[ x^T A x > 0 \]
+    \item Positive definite gives us an all positive $D$ in $A = L D L^T$
+    \begin{itemize}
+        \item Let $x = L^{-1} e_i$, where $e_i$ is the $i$-th column of $I$
+    \end{itemize}
+    \item $L$ becomes $L D^{1/2}$ 
+    \item $A = L L^T$, i.e. $L = U^T$
+    \begin{itemize}
+        \item Half as many flops as $LU$!
+        \item Only calculate $L$ not $U$
+    \end{itemize}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Cholesky Factorization}
+\begin{lstlisting}[mathescape,caption=Cholesky,label=algo:chol]
+  given $A$
+  output $L$
+                               
+  for $k=1\dots n$          
+    $\ell_{kk}$ = $\left(a_{kk} - \sum_{i=1}^{k-1} \ell_{ki}^2\right)^{1/2}$
+
+    for $j = k+1 \ldots n$      
+        $\ell_{jk} = \left( a_{jk} - \sum_{i=1}^{k-1}
+                           \ell_{ji}\ell_{ki} \right)/ \ell_{kk}$
+    end
+  end                          
+\end{lstlisting}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%JBS Fall 2009, I feel the next two slides are too tangential and too much
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{frame}
+%\frametitle{Why SPD?}
+%Task: find the square of length of a vector $x$
+%\bigskip
+%
+%Solution: $\|x\|^2$ or $x^T x$ or $x^T I x$.
+%\bigskip
+%
+%In Euclidean space, our innerproduct is simply $I$.  In general innerproducts
+%tell us how to measure things.
+%\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{frame}
+%\frametitle{Why SPD?}
+%Imagine a $2D$ space where moving in $x$ is twice as expensive as moving in $y$:
+%\[
+%x^T
+%\begin{bmatrix}
+%4 & 0\\ 0 & 1
+%\end{bmatrix}
+%x
+%\]
+%A norm of $x$ with this innerproduct represents our modified notion of length.
+%\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Why SPD?}
+In general, SPD gives us
+\begin{itemize} 
+    \item non singular
+    \begin{itemize}
+        \item If $x^T A x > 0$, for all nonzero $x$
+        \item Then $A x \neq 0$ for all nonzero $x$
+        \item Hence, the columns of $A$ are linearly independent
+    \end{itemize}
+    \item No pivoting
+    \begin{itemize}
+        \item From algorithm, can derive that\\
+              $|l_{k j}| \leq \sqrt{a_{k k}}$
+        \item Elements of $L$ do not grow with respect to $A$
+        \item \emph{For short proof see book}
+    \end{itemize}
+    \item Cholesky faster than $LU$
+    \begin{itemize}
+        \item No pivoting
+        \item Only calculte $L$, not $U$
+    \end{itemize}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \begin{frame}
+ \frametitle{Why SPD?}
+A matrix is Positive Definite (PD) if for all $x\ne0$ the following holds
+\[ x^T A x > 0 \]
+ \begin{itemize}
+    \item   For SPD matrices, use the Cholesky factorization,
+            $A = L L^T$
+    \item   Cholesky Factorization
+    \begin{itemize}
+        \item Requires no pivoting 
+        \item Requires one half as many flops as $LU$ factorization, that is only calculate $L$ not $L$ and $U$.
+        \item Cholesky will be more than \emph{twice} as fast as $LU$ because no pivoting means no data movement
+    \end{itemize}
+    \item   Use MATLAB's built-in \texttt{chol} function for routine work
+     %\item Sparse Cholesky faster than Sparse $LU$ (what?!)
+     %\item All positive eigenvalues (what?!)
+     %\item Conjugate Gradient (what?!)
+ \end{itemize} 
+ \end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% JBS Fall 2009, the Cholesky algorithm here is different than the one
+% in Cheney and Kincaid
+%\begin{frame}
+%\frametitle{Cholesky Tutorial Module}
+%\begin{center}
+%\small
+%\url{http://www.cse.illinois.edu/iem/linear_equations/cholesky/}
+%\end{center}
+%\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Motivation Revisted}
+Multiple right hand sides
+\begin{itemize}
+    \item Solve $A x = b$ for $k$ different $b$ vectors
+    \item Using $LU$ factorization, the cost is $\mO(n^3) + \mO(k n^2)$
+    \item Using Gaussian Elimination, the cost is $\mO(k n^3)$
+\end{itemize}
+If $A$ is symmetric 
+\begin{itemize}
+    \item Save 50\% of the flops with $L D L^T$ factorization
+    \item Save 50\% of the flops and many memory operations with\\Cholesky ($L^T L$) factorization
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Backslash Redux}
+
+The \verb|\| operator examines the matrix $A$ before
+attempting to solve the system.\\
+\vspace{10pt}
+\verb|\| is smart and does
+\begin{itemize}
+\item   A triangular solve if $A$ is triangular, or a permutation of
+        a triangular matrix
+\item   Cholesky factorization and triangular solves if $A$ is
+        symmetric and the diagonal elements of $A$ are positive
+        (\emph{and} if the subsequent Cholesky factorization does not fail.)
+\item   $LU$ factorization if $A$ is square and the preceding conditions
+        are not met.
+\item   QR factorization to obtain the least squares solution if
+        $A$ is not square.
+\end{itemize}
+
+\begin{alertblock}{}
+Revisit \texttt{test\_slash.m}
+\end{alertblock}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

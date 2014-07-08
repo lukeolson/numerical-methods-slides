@@ -1,0 +1,823 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme{Boadilla}
+  \usecolortheme{luke}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  %\setbeamercovered{transparent}
+}
+\mode<handout>
+{
+  \usetheme{Boadilla}
+  \usecolortheme{luke2}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 1}
+\subtitle{Introduction to Numerical Methods}
+\date{August 25, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\begin{block}{}
+\centering
+Numerical Methods?\\
+
+\vspace{1cm}
+
+Numerical Analysis?
+\end{block}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical Calculation vs.~Symbolic Calculation}
+\begin{itemize}
+\item Numerical Calculation: involve numbers directly
+\begin{itemize}
+\item manipulate numbers to produce a {\bf numerical} result
+\end{itemize}
+\item Symbolic Calculation: symbols represent numbers 
+\begin{itemize}
+\item manipulate symbols according to mathematical rules to produce a
+symbolic result
+\end{itemize}
+\end{itemize}
+\begin{columns}
+\begin{column}{0.45\textwidth}
+\begin{example}[numerical]
+\[
+\frac{(17.36)^2 - 1}{17.36 + 1} = 16.36
+\]
+\end{example}
+\end{column}
+\begin{column}{0.45\textwidth}
+\begin{example}[symbolic]
+\[
+\frac{x^2 - 1}{x + 1} = x-1
+\]
+\end{example}
+\end{column}
+\end{columns}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Analytic Solution vs.~Numerical Solution}
+\begin{itemize}
+\item Analytic Solution (a.k.a. symbolic): The exact numerical or symbolic representation of
+the solution
+  \begin{itemize}
+  \item may use special characters such as $\pi$, $e$, or $\tan{(83)}$
+  \end{itemize}
+\item Numerical Solution: The computational representation of the solution
+  \begin{itemize}
+  \item entirely numerical
+  \end{itemize}
+\end{itemize}
+\begin{columns}
+\begin{column}{0.45\textwidth}
+\begin{example}[analytic]
+\[
+\frac{1}{4}
+\]
+\[
+\frac{1}{3}
+\]
+\[
+\pi
+\]
+\[
+\tan{(83})
+\]
+\end{example}
+\end{column}
+\begin{column}{0.45\textwidth}
+\begin{example}[numerical]
+\[
+0.25
+\]
+\[
+0.33333\dots(?)
+\]
+\[
+3.14159\dots(?)
+\]
+\[
+0.88472\dots(?)
+\]
+\end{example}
+\end{column}
+\end{columns}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical Computation and Approximation}
+\begin{itemize}
+\item Numerical Approximation is needed to carry out the steps in the
+numerical calculation.  The overall process is a numerical computation.
+\begin{example}[symbolic computation, numerical solution]
+\[
+\frac{1}{2} +
+\frac{1}{3} +
+\frac{1}{4} - 1 = \frac{1}{12} = 0.083333333\dots
+\]
+\end{example}
+\begin{example}[numerical computation, numerical approximation]
+\[
+0.500 +
+0.333 +
+0.250
+- 1.000 = 0.083
+\]
+\end{example}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Method vs.~Algorithm vs.~Implementation}
+\begin{itemize}
+\item Method: a general (mathematical) framework describing the solution process
+\item Algorithm: a detailed description of executing the method
+\item Implementation: a particular instantiation of the algorithm
+\end{itemize}
+\begin{itemize}
+\item Is it a ``good'' method?
+\item Is it a robust algorithm?
+\item Is it a fast implementation?
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{The Big Theme}
+\begin{columns}
+\begin{column}{0.45\textwidth}
+\pgfimage[height=4cm]{./figs/pull1}
+
+\begin{center}
+  \begin{block}{}
+    Accuracy
+  \end{block}
+\end{center}
+\end{column}
+
+\begin{column}{0.45\textwidth}
+\pgfimage[height=4cm]{./figs/pull2}
+
+\begin{center}
+  \begin{block}{}
+    Cost
+  \end{block}
+\end{center}
+\end{column}
+
+\end{columns}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{History: Numerical Algorithms}
+\begin{itemize}
+\item date to 1650 BC: The Rhind Papyrus of ancient Egypt contains 85
+problems; many use numerical algorithms (T. Chartier, Davidson)
+\end{itemize}
+\begin{columns}
+  \begin{column}{0.55\textwidth}
+    \pgfimage[height=6cm]{./figs/rhind}
+  \end{column}
+  \begin{column}{0.35\textwidth}
+    \begin{itemize}
+        \item Approximates $\pi$ with $(8/9)^2 * 4 \approx 3.1605$
+    \end{itemize}
+  \end{column}
+\end{columns}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{History: Archimedes}
+\begin{columns}
+  \begin{column}{0.55\textwidth}
+    \begin{itemize}
+    \item 287-212BC developed the "Method of Exhaustion"
+    \item Method for determining $\pi$
+      \begin{itemize}
+        \item find the length of the permieter of a polygon inscribed inside a
+        circle of radius $1/2$
+        \item find the permiter of a polygon circumscribed outside a circle
+        of radius $1/2$
+        \item the value of $\pi$ is between these two lengths
+      \end{itemize}
+    \end{itemize}
+  \end{column}
+  \begin{column}{0.35\textwidth}
+    \pgfimage[height=4cm]{./figs/archimedes}
+  \end{column}
+\end{columns}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{History: Method of Exhaustion}
+\begin{itemize}
+  \item A circle is not a polygon
+  \item A circle {\bf is} a polygon with an infinite number of sides
+  \item $C_n$ = circumference of an n-sided polygon inscribed in a circle of
+  radius $1/2$
+  \item $\lim_{n\rightarrow\infty} = \pi$
+  \item Archimedes deterimined
+    \begin{align*}
+    \frac{223}{71} < & \pi < \frac{22}{7}\\
+    3.1408 < & \pi < 3.1429
+    \end{align*}
+  \item two places of accuracy....
+  \item \,\, \url{http://www.pbs.org/wgbh/nova/archimedes/pi.html}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{History: Method of Machin}
+\begin{itemize}
+  \item Around 1700, John Machin discovered the trig identity
+  \begin{equation*}
+  \pi  = 16 \arctan{(\frac{1}{5})} - 4\arctan{(\frac{1}{239})}
+  \end{equation*}
+  \item Led to calculation of the first 100 digits of $\pi$
+  \item Uses the Taylor series of $\arctan$ in the algorithm
+  \begin{equation*}
+    \arctan{(x)} = x - \frac{x^3}{3} + \frac{x^5}{5} - \frac{x^7}{7}\dots
+  \end{equation*}
+  \item Used until 1973 to find the first Million digits
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical Analysis}
+\begin{definition}[Trefethen]
+Study of algorithms for the problems of continuous mathematics
+\end{definition}
+
+We've been doing this since Calculus (and before!)
+\begin{itemize}
+  \item Riemann sum for calculating a definite integral
+  \item Newton's Method
+  \item Taylor's Series expansion + truncation
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Big Questions}
+\begin{block}{}
+\begin{itemize}
+\item How algorithms work and how they fail
+\item Why algorithms work and why they fail
+\end{itemize}
+\end{block}
+\begin{itemize}
+\item Connects mathematics and computer science
+\item Need mathematical theory, computer programming, and scientific inquiry
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical Analysis}
+A Numerical Analyst needs
+\begin{itemize}
+\item computational knowledge (e.g. programming skills)
+\item understanding of the application (physical intuition for validation)
+\item mathematical ability to construct and meaningful algorithm
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical Analysis}
+Numerical focus:
+\begin{description}
+\item[Approximation] An approximate solution is sought.  How close is this
+to the desired solution?
+\item[Efficiency] How fast and cheap (memory) can we compute a solution?
+\item[Stability] Is the solution sensitive to small variations in the
+problem setup?
+\item[Error] What is the role of finite precision of our computers?
+\end{description}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical Analysis}
+Why?
+\begin{itemize}
+\item Numerical methods improve scientific simulation
+\item Some disasters attributable to bad numerical computing (Douglas
+Arnold)
+\begin{itemize}
+\item The Patriot Missile failure, in Dharan, Saudi Arabia, on February 25, 1991 which resulted in 28 deaths, is ultimately attributable to poor handling of rounding errors.
+\item The explosion of the Ariane 5 rocket just after lift-off on its maiden voyage off French Guiana, on June 4, 1996, was ultimately the consequence of a simple overflow.
+\item The sinking of the Sleipner A offshore platform in Gandsfjorden near Stavanger, Norway, on August 23, 1991, resulted in a loss of nearly one billion dollars. It was found to be the result of inaccurate finite element analysis.
+\end{itemize}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{I thought we were studying "Numerical Methods"?!}
+\begin{block}{}
+Numerical analysis is the study of numerical methods
+\end{block}
+\begin{itemize}
+\item Numerical Analysis: understanding general behavior of numerical
+methods
+\item Numerical Methods: understanding {\bf how} to apply certain methods to
+solve specific tasks
+\item As programmers, we need to understand the concepts of numerical
+analysis and implementation aspects of the numerical method
+\end{itemize}
+
+We thus focus on 
+\begin{itemize}
+\item Matlab implementation
+  \begin{itemize}
+  \item fast learning curve
+  \item quick time-to-production: low development times
+  \item a major develop environment in scientific computing
+  \item integrated graphics
+  \end{itemize}
+\item Errors in computation
+\item specific methods for root finding, integrating, interpolation, etc.
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{CS Topics}
+We'll visit a variety CS areas during the semester:
+\begin{description}
+\item AI:  transitions, state systems, patterns (eigenvalues, linear algebra)
+\item Informatics:  Google matrix, Amazon recommendations (eigenvalues, linear
+algebra, sparse matrices, iterative methods)
+\item Graphics:  image compression, representation of
+curves/surfaces/lighting (interpolation, differentiation, etc)
+\item Systems:  computer performance and monitoring (interpolation, integration)
+\item Security:  ssh (random numbers)
+\item Economics/Finance:  modeling/simulation of financial data (monte carlo)
+\item Scientific computing:  design of algorithms for high performance/parallel computing.
+\item ... 
+\end{description}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Course Info}
+\begin{block}{}
+\url{http://www.cs.uiuc.edu/class/fa09/cs357/}
+\end{block}
+\begin{columns}
+\begin{column}{0.55\textwidth}
+\begin{itemize}
+\item Book: Numerical Mathematics and Computing, Sixth Edition, by
+Cheney and Kincaid (or 5th)
+\end{itemize}
+\end{column}
+\begin{column}{0.35\textwidth}
+\pgfimage[height=2cm]{./figs/nmc}
+\end{column}
+\end{columns}
+
+\bigskip
+{\small
+\begin{columns}
+\begin{column}{0.32\textwidth}
+Luke's contact:
+\begin{itemize}
+\item Office: 4312 Siebel Center
+\item Office Hours: 10:45-11:45am
+\item email: lukeo AT illinois.edu
+\item IM: lukeo (jabber.cs.uiuc.edu) %to be created
+\end{itemize}
+\end{column}
+\begin{column}{0.32\textwidth}
+\begin{itemize}
+\item TA: Jacob Schroder, Elena Caraba, Matt Wrobel
+\item Office Hours: tbd
+\item Office Hours Location: 4335 Siebel Center (NA Lab)
+\item newsgroup: cs357 at news.cs.uiuc.edu
+\end{itemize}
+\end{column}
+\end{columns}
+}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Assessment}
+\begin{block}{}
+\url{http://www.cs.uiuc.edu/class/fa09/cs357/}
+\end{block}
+Grades:
+\begin{tabular}{l l}
+Homework   & 25\%\\
+Midterm Exam 1 & 25\%\\
+Midterm Exam 2 & 25\%\\
+Final Exam & 25\%\\
+\end{tabular}
+
+Homework: 
+\begin{itemize}
+\item must acheive 50\% to pass the course
+\item weekly, due by 4pm at the TAs office (box)
+\item submitted in paper, do not email
+\item source code included upon request
+\item no graphics by hand
+\item accepted for 50\% credit up to one week late
+\item no dropped scores
+\item collaborate, but {\bf do not} copy!
+\begin{itemize}
+\item cite collaborators at the top
+\item hand in your {\bf own} work in your {\bf own} words
+\item copied solutions for 1/2 credit is still copying
+\item see departmental policy re: cheating
+\end{itemize}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Finally$\ldots$}
+\begin{block}{}
+\url{http://www.cs.uiuc.edu/class/fa09/cs357/}
+\end{block}
+\vspace{1cm}
+Schedule and Notes:
+\begin{itemize}
+\item on the web
+\item everything is {\bf tentative} including midterm exams
+\item final exam is fixed
+\item ''Good Questions worksheets'' are lecture only
+\end{itemize}
+\vspace{1cm}
+\begin{alertblock}{}
+\centering
+Questions?
+\end{alertblock}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Preliminaries...}
+\begin{itemize}
+  \item A computational experiment...
+  \item relative vs absolute error
+  \item Taylor
+  \item nested multiplication
+  \item Matlab
+\end{itemize}
+\begin{block}{Goals}
+  \begin{itemize}
+  \item To think like a numerical analyst
+  \item Understanding error in numerical computing
+  \item A look at the power of Tayor Series
+  \item A brief look at the algorithmic importance in numerical methods
+  \item Utilizing Matlab
+\end{itemize}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Typical Process}
+\begin{block}{Goal}
+  Find $f'(1.0)$ for function $f(x)=e^{x}$.
+\end{block}
+\begin{block}{Problem}
+  Don't (want to need to) know $f'(x)$ explicitly.
+\end{block}
+\begin{block}{Method}
+  Use definition.
+  \begin{equation*} 
+    f'(x) = \lim_{h\rightarrow 0} \frac{f(x+h) - f(x)}{h}
+\end{equation*}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\begin{block}{Method}
+  Use definition.
+  \begin{equation*} 
+    f'(x) = \lim_{h\rightarrow 0} \frac{f(x+h) - f(x)}{h}
+\end{equation*}
+\end{block}
+\frametitle{Typical Process continued}
+\begin{columns}
+\begin{column}{0.45\textwidth}
+\begin{lstlisting}[mathescape,caption=psuedo]
+
+$h$=1
+$x$=1  
+for $i$=1 to 20 do
+  $h=h/2$
+  $y=(f(x+h)- f(x))/h$
+  $err = |(f(x)-y)|$
+end
+\end{lstlisting}
+\end{column}
+
+\begin{column}{0.45\textwidth}
+\begin{lstlisting}[caption=Matlab]
+f=inline('exp(x)');
+h=1;
+x=1;
+for i=1:20
+  h=h/2;
+  y=(f(x+h) - f(x))/h;
+  err(i) = abs(f(x)-y);
+end
+\end{lstlisting}
+\end{column}
+\end{columns}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Measuring Error}
+  \begin{itemize}
+    \item Here we used the absolute error:
+  \begin{align*}
+    \text{Error}(x_a) &= |x_t - x_a|\\
+  & = |\text{true value} - \text{approximate value}|
+  \end{align*}
+
+    \item This doesn't tell the whole story.  For example, if the values
+are large, like billions, then an Error of 100 is small.  If the values
+are smaller, say around 10, then an Error of 100 is large.  We need the
+relative error:
+  \begin{align*}
+    \text{Rel}(x_a) &= \left|\frac{x_t - x_a}{x_t}\right|\\
+  & = \left|\frac{\text{true value} - \text{approximate value}}{\text{true
+value}}\right|
+  \end{align*}
+  \item More on \emph{types} of errors next time...
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Taylor}
+  \begin{itemize}
+    \item All we can ever do is add and multiply (more on the FPU later)
+    \item We can't directly evaluate $e^{x}$, $cos(x)$, $\sqrt{x}$
+    \item What to do?  Taylor Series \emph{approximation}
+\end{itemize}
+\begin{block}{Taylor}
+  The Taylor series expansion of $f(x)$ at the point $x=c$ is given by
+  \begin{align*}
+    f(x) &= f(c) + (x-c) f'(c) + \frac{(x-c)^2}{2!} f''(c) + \dots +
+\frac{(x-c)^n}{n!} f^{(n)}(c)+\dots\\
+        &= \sum_{k=0}^{\infty} \frac{(x-c)^{k}}{k!} f^{(k)}(c)
+\end{align*}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Taylor Example}
+\begin{block}{Taylor}
+  The Taylor series expansion of $f(x)$ about the point $x=c$ is given by
+  \begin{align*}
+    f(x) &= f(c) + (x-c) f'(c) + \frac{(x-c)^2}{2!} f''(c) + \dots +
+\frac{(x-c)^n}{n!} f^{(n)}(c)+\dots\\
+        &= \sum_{k=0}^{\infty} \frac{(x-c)^{k}}{k!} f^{(k)}(c)
+\end{align*}
+\end{block}
+\begin{example}[$e^x$]
+    We know $e^0 = 1$, so expand about $c=0$ to get
+    \begin{align*}
+    f(x) & = e^x = 1 + (x-0)\cdot 1 + \frac{(x-0)^2}{2~} \cdot 1 + \dots\\
+          & = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \dots
+\end{align*}
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Taylor Approximation}
+\begin{itemize}
+\item
+    So
+    \begin{equation*}
+    e^2 = 1 + 2 + \frac{2^2}{2!} + \frac{2^3}{3!} + \dots
+\end{equation*}
+\item But we can't evaluate an infinite series, so we truncate...
+\end{itemize}
+\begin{block}{Taylor Series Polynomial Approximation}
+  The Taylor Polynomial of degree $n$ for the function $f(x)$ about the
+point $c$ is 
+\begin{equation*}
+        p_n(x) = \sum_{k=0}^{n} \frac{(x-c)^{k}}{k!} f^{(k)}(c)
+\end{equation*}
+\end{block}
+\begin{example}[$e^x$]
+In the case of the exponential
+\begin{equation*}
+        e^x \approx p_n(x) = 1 + x + \frac{x^2}{2!} + \dots + \frac{x^n}{n!}
+\end{equation*}
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Taylor Approximation}
+Evaluate $e^2$:
+\begin{itemize}
+  \item Using $0^{th}$ order Taylor series: $e^x \approx 1$ does not
+give a good fit.
+  \item Using $1^{st}$ order Taylor series: $e^x \approx 1 + x$ gives a
+better fit.
+  \item Using $2^{nd}$ order Taylor series: $e^x \approx 1 + x + x^2/2$ gives a
+a really good fit.
+\end{itemize}
+\begin{lstlisting}
+x=2;
+pn=0;
+for j=0:15
+  pn = pn + (x^j)/factorial(j);
+  err = exp(2)-pn
+  pause
+end
+\end{lstlisting}
+
+\bigskip
+Interactive module: http://www.cse.uiuc.edu/iem/interpolation/taylor/
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Taylor Approximation Recap}
+\begin{block}{Infinite Taylor Series Expansion (exact)}
+\begin{equation*}
+    f(x) = f(c) + (x-c) f'(c) + \frac{(x-c)^2}{2!} f''(c) + \dots +
+\frac{(x-c)^n}{n!} f^{(n)}(c)+\dots
+\end{equation*}
+\end{block}
+\begin{block}{Finite Taylor Series Expansion (exact)}
+\begin{equation*}
+    f(x) = f(c) + (x-c) f'(c) + \frac{(x-c)^2}{2!} f''(c) + \dots +
+\frac{(x-c)^n}{n!} f^{(n)}(\xi),
+\end{equation*}
+but we don't know $\xi$.
+\end{block}
+\begin{block}{Finite Taylor Series Approximation}
+\begin{equation*}
+    f(x) \approx f(c) + (x-c) f'(c) + \frac{(x-c)^2}{2!} f''(c) + \dots +
+\frac{(x-c)^n}{n!} f^{(n)}(x),
+\end{equation*}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Taylor Approximation Error}
+\begin{itemize}
+  \item How accurate is the Taylor series polynomial approximation?
+  \item The $n$ terms of the approximation are simply the first $n$
+terms of the \emph{exact} expansion:
+  \begin{equation}
+    e^x = \underbrace{1 + x + \frac{x^2}{2!}}_{\text{$p_2$ approximation
+to $e^x$}} + \underbrace{\frac{x^3}{3!} + \dots}_{\text{truncation
+error}}
+\end{equation}
+\item 
+So the function $f(x)$ can be written as the Taylor Series approximation
+plus an error (truncation) term:
+\begin{equation*}
+  f(x)  = f_n(x) + E_n(x)
+\end{equation*}
+where
+\begin{equation*}
+  E_n(x) = \frac{(x-c)^{n+1}}{(n+1)!}f^{(n+1)}(\xi)
+\end{equation*}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Big "$\mO$" (different view)}
+We write the error as 
+\begin{align*}
+  E_n(x) &= \frac{(x-c)^{n+1}}{(n+1)!}f^{(n+1)}(\xi)\\
+  & = \mO\left(\frac{(x-c)^{n+1}}{(n+1)!}\right)
+\end{align*}
+since we assume the $(n+1)^{th}$ derivative is bounded on the interval
+$[a,b]$.
+
+\vspace{0.5cm}
+Often, we let $h=x-c$ and we have
+\begin{equation*}
+  f(x) = p_n(x) + \mO(h^{n+1})
+\end{equation*}
+
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Truncation Error}
+The Taylor series expansion of $\sin{(x)}$ is 
+\begin{equation*}
+  \sin{(x)} = x 
+  -\frac{x^3}{3!}
+  +\frac{x^5}{5!}
+  -\frac{x^7}{7!}
+  +\frac{x^9}{9!} -\dots
+\end{equation*}
+If $x \ll 1$, then the remaining terms are small.  If we neglect these terms
+\begin{equation*}
+  \sin{(x)} = \underbrace{x 
+  -\frac{x^3}{3!}
+  +\frac{x^5}{5!}}_{\text{approximation to sin}}
+  \underbrace{-\frac{x^7}{7!}
+  +\frac{x^9}{9!} -\dots}_{\text{truncation error}}
+\end{equation*}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Outlook}
+Next time:
+\begin{itemize}
+  \item Polynomial evaluation
+  \item Matlab
+\end{itemize}
+\bigskip
+Overall:
+\begin{enumerate}
+  \item Preliminaries
+  \item Floating point arithmetic, precision, etc
+  \item Nonlinear equations (root finding)
+  \item Interpolation, Differentiation, Integration, splines
+  \item Midterm Exam 1
+
+  \item Numerical Linear Algebra
+  \item Midterm Exam 2
+
+  \item Application: ODEs, more splines, more linear algebra, Monte Carlo
+  \item Final Exam
+\end{enumerate}
+\end{frame}
+% -------------------------------------------------
+\end{document}

@@ -1,0 +1,549 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%pdflatex -jobname lecture15.print lecture15
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 25}
+\subtitle{Randomness}
+\date{December 1, 2008}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{expected value and variance}
+\begin{itemize}
+  \item expected value: average value of the variable
+\begin{equation*}
+  E[x] = \sum_{j=1}^{n}x_j p_j
+\end{equation*}
+  \item variance: variation from the average
+\begin{equation*}
+  \sigma^2[x] = E[(x-E[x])^2] = E[x^2] - E[x]^2
+\end{equation*}
+\end{itemize}
+\begin{block}{throwing a die}
+\begin{itemize}
+  \item expected value: $E[x] = (1+2+\dots+6)/6 = 3.5$
+  \item variance: $\sigma^2[x] = 2.916$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{estimated $E[x]$}
+\begin{itemize}
+  \item to estimate the expected value, choose a set of random values
+based on the probability and average the results
+\begin{equation*}
+  E[x] = \frac{1}{N} \sum_{j=1}^{N} x_i
+\end{equation*}
+  \item bigger $N$ gives better estimates
+\end{itemize}
+\begin{block}{throwing a die}
+\begin{itemize}
+  \item 3 rolls: $3,1,6 \rightarrow E[x] \approx (3+1+6)/3 = 3.33$
+  \item 9 rolls: $3,1,6,2,5,3,4,6,2 \rightarrow E[x] \approx (3+1+6+2+5+3+4+6+2)/9 = 3.51$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{law of large numbers}
+\begin{itemize}
+  \item by taking $N$ to $\infty$, the error between the estimate an the
+expected value is statistically zero.  That is, the estimate will
+converge to the correct value
+\begin{equation*} 
+  P(E[x] = lim_{N\rightarrow\infty} \frac{1}{N} \sum_{i=1}^{N} x_i) = 1
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{continuous extensions}
+\begin{itemize}
+  \item expected value
+  \begin{align*}
+  E[x] & = \int_a^b x\rho(x)\,dx\\
+  E[g(x)] & = \int_a^b g(x)\rho(x)\,dx
+  \end{align*}
+  \item variance
+  \begin{align*}
+  \sigma^2[x] & = \int_a^b (x-E[x])^2\rho(x)\,dx\\
+  \sigma^2[g(x)] & = \int_a^b (g(x)-E[g(x)])^2 p(x)\,dx\\
+  \end{align*}
+  \item estimating the expected value
+  \begin{equation*}
+    E[g(x)] \approx \frac{1}{N} \sum_{i=1}^{N} g(x_i)
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$}
+Use the unit square $[0,1]^2$ with a quarter-circle
+\begin{align*}
+  f(x,y) & = 
+\begin{cases}
+1 & \quad (x,y)\in \, circle\\
+0 & else
+\end{cases}\\
+  A_{quarter-circle} &= \int_0^1\int_0^1 f(x,y)\,dxdy = \frac{pi}{4}
+\end{align*}
+\begin{center}
+  \pgfimage[height=4cm]{./figs/map4}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$}
+Estimate the area of the circle by randomly evaluating $f(x,y)$
+\begin{align*}
+  A_{quarter-circle} &\approx \frac{1}{N}\sum_{i=1}^{N}f(x_i,y_i)
+\end{align*}
+\begin{center}
+  \pgfimage[height=4cm]{./figs/map3}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$}
+By definition
+\begin{align*}
+  A_{quarter-circle} & = \pi/4
+\end{align*}
+so
+\begin{equation*}
+  \pi \approx \frac{4}{N} \sum_{i=1}^{N}f(x_i,y_i)
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{2d: example computing $\pi$, algorithm}
+\begin{lstlisting}[mathescape]
+  input $N$
+  call rand in $2d$
+  for $i$=1:$N$
+    $sum = sum + f(x_i,y_i)$
+  end
+  $sum = 4*sum/N$
+\end{lstlisting}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$, algorithm}
+The expected value of the error is $\mO(\frac{1}{\sqrt{N}})$
+\begin{itemize}
+  \item convergence does not depend on dimension
+  \item deterministic integration is very hard in higher dimensions
+  \item deterministic integration is very hard for complicated domains
+    \item Trapezoid rule in dimension $d$: $\mO(\frac{1}{N^{2/d}})$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{CLT: Central Limit Theorem}
+\begin{block}{}
+  The distribution of an average is close to being normal, even when the distribution from which the average is computed is not normal.
+\end{block}
+What?
+\begin{itemize}
+  \item Let $x_1,\dots,x_n$ be some independent random variables from any PDF
+  \item Consider the sum $S_n = x_1 + \dots + x_n$
+  \item The expected value is $n\mu$ and the standard deviation is
+$\sigma \sqrt{n}$
+  \item That is $\frac{S_n - n\mu}{\sigma\sqrt{n}}$ approaches the
+normal distribution
+  \item What?  The sample mean has an error of $\sigma/\sqrt{n}$
+\end{itemize}
+\bigskip
+
+\url{http://youtube.com/watch?v=XAuMfxWg6eI}
+
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Stochastic Simulation}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item Stochastic simulation mimics physical behavior through random
+simulations
+    \item ...also known as Monte Carlo method (no single MC method!)
+    \item Usefulness:
+    \begin{itemize}
+    \item nondeterministic processes
+    \item deterministic models that are too complicated to model
+    \item deterministic models with high dimensionality
+    \end{itemize}
+\end{itemize}
+\bigskip
+
+\url{http://www.cse.uiuc.edu/iem/integration/mntcurve/}
+\url{http://www.cse.uiuc.edu/iem/integration/mntcirc/}
+\end{frame}
+\begin{frame}
+\frametitle{Stochastic Simulation}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item Two requirements for MC: 
+    \begin{itemize}
+    \item knowing which probability distributions are needed
+    \item generating sufficient random numbers
+    \end{itemize}
+    \item The probability distribution depends on the problem (theoretical or
+empirical evidence)
+    \item The probability distribution can be approximated well by simulating a
+large number of trials
+\end{itemize}
+\bigskip
+
+\url{http://www.cse.uiuc.edu/iem/random/bfnneedl/}
+\url{http://www.cse.uiuc.edu/iem/random/walklplc/}
+\end{frame}
+\begin{frame}
+\frametitle{Randomness}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item Randomness $\approx$ unpredictability
+    \item One view: a sequence is random if it has no shorter description
+    \item Physical processes, such as flipping a coin or tossing dice, are
+deterministic with enough information about the governing equations and initial
+conditions.
+    \item But even for deterministic systems, sensitivity to the initial
+conditions can render the behavior practically unpredictable.
+    \item we need random simulation methods
+\end{itemize}
+\bigskip
+
+\texttt{drunk.m}
+\end{frame}
+\begin{frame}[fragile]
+\frametitle{Repeatability}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item With unpredictability, true randomness is not repeatable
+    \item ...but lack of repeatability makes testing/debugging difficult
+    \item So we want repeatability, but also independence of the trials
+\end{itemize}
+\bigskip
+
+\begin{lstlisting}
+>> rand('seed',1234)  
+>> rand(10,1)      
+\end{lstlisting}
+
+\end{frame}
+\begin{frame}
+\frametitle{Pseudorandom Numbers}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{alertblock}{}
+    Computer algorithms for random number generations are deterministic
+\end{alertblock}
+\begin{itemize}
+    \item ...but may have long periodicity (a long time until an apparent
+pattern emerges)
+    \item These sequences are labeled \emph{pseudorandom}
+    \item Pseudorandom sequences are predictable and reproducible (this is
+mostly good)
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Random Number Generators}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+Properties of a good random number generator:
+\begin{description}
+    \item[Random pattern:]  passes statistical tests of randomness
+    \item[Long period:] long time before repeating
+    \item[Efficiency:] executes rapidly and with low storage
+    \item[Repeatability:] same sequence is generated using same initial states
+    \item[Portability:] same sequences are generated on different architectures
+\end{description}
+\end{frame}
+\begin{frame}
+\frametitle{Random Number Generators}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item Early attempts relied on complexity to ensure randomness
+    \item ``midsquare'' method: square each member of a sequence and take the
+middle portion of the results as the next member of the sequence
+    \item ...simple methods with a statistical basis are preferable
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Linear Congruential Generators}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item Congruential random number generators are of the form:
+\[
+x_k = (a x_{k-1} + c)\, (\mod M)
+\]
+where $a$ and $c$ are integers given as input.
+    \item $x_0$ is called the \emph{seed}
+    \item Integer $M$ is the largest integer representable (e.g. $2^{31} -1$)
+    \item Quality depends on $a$ and $c$.  The period will be at most $M$.
+\end{itemize}
+\begin{example}
+Let $a=13$, $c=0$, $m=31$, and $x_0=1$.
+\[
+1,\, 13,\, 14,\, 27,\, 10,\, 6,\, \dots
+\]
+This is a permutation of integers from $1,\dots,30$, so the period is $m-1$.
+\end{example}
+\bigskip
+
+\texttt{randgui('rand')}
+
+\texttt{randgui('randssp')}
+\end{frame}
+\begin{frame}
+\frametitle{History} 
+\framesubtitle{From C. Moler, emph{NCM}}
+\begin{itemize}
+    \item IBM used Scientific Subroutine Package (SSP) in the 1960's the
+mainframes.
+    \item Their random generator, $\texttt{rnd}$ used $a=65539$, $c=0$, and
+$m=2^{31}$.
+    \item arithmetic mod $2^{31}$ is done quickly with 32 bit words.
+    \item multiplication can be done quickly with $a=2^{16}+3$ with a shift and
+short add.
+    \item Notice (mod $m$):
+\[
+    x_{k+2} = 6x_{k+1} - 9 x_{k}
+\]
+...strong correlation among three successive integers
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{History} 
+\framesubtitle{From C. Moler, emph{NCM}}
+\begin{itemize}
+    \item Matlab used $a = 7^5$, $c=0$, and $m=2^{31}-1$ for a while
+    \item period is $m-1$.
+    \item this is no longer sufficient
+\end{itemize}
+\bigskip
+
+\texttt{randgui('randssp')}
+\end{frame}
+\begin{frame}[fragile]
+\frametitle{what's used?}
+Two popular methods:
+
+1. Method of Marsaglia (period $\approx 2^{1430}$).
+\begin{lstlisting}[mathescape]
+Initialize $x_0,\dots, x_3$ and $c$ to random values given a seed
+
+Let $s=2111111111 x_{n-4} + 1492 x_{n-3} 1776 x_{n-2} + 5115 x_{n-1} + c$
+
+Compute $x_n= s \mod 2^{32}$
+
+$c = floor(s/2^{32})$
+\end{lstlisting}
+\bigskip
+
+2. \emph{rand()} in Unix uses $a=1103515245$, $c=12345$, $m=2^{31}$.
+\bigskip
+
+\begin{alertblock}{}
+    Even the Marsaglia method produces points in $n-D$ on only a small number of
+hyperplanes.
+\end{alertblock}
+\begin{alertblock}{}
+    In general, the digits in random numbers are not themselves random...some
+patterns reoccur much more often.
+\end{alertblock}
+\end{frame}
+\begin{frame}
+\frametitle{Linear Congruential Generators}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item sensitive to $a$ and $c$
+    \item be careful with supplied random functions on your system
+    \item period is $M$
+    \item standard division is necessary if generating floating points in
+$[0,1)$.
+\end{itemize}
+\bigskip
+
+\url{http://www.cse.uiuc.edu/iem/random/pairplot/}
+\end{frame}
+\begin{frame}[shrink,fragile]
+\frametitle{Typical LCG values}
+\begin{tabular}{c | c c c}\hline
+Source                                                                            &  m  &  a  &  c \\\hline
+Numerical Recipes                                                                 &  $2^{32}$  &  1664525  &  1013904223 \\
+Borland C/C++                                                                     &  $2^{32}$  &  22695477  &  1 \\
+glibc (GCC)                                                                       &  $2^{32}$  &  1103515245  &  12345\\
+ANSI C: Watcom C, Digital Mars, etc                 &  $2^{32}$  &  1103515245  &  12345\\
+Borland Delphi, Virtual Pascal                                                    &  $2^{32}$  &  134775813  &  1\\
+MS Visual C++                                           &  $2^{32}$  &  214013  &  2531011\\
+Apple CarbonLib                                                         &  $2^{31} - 1$ &  16807  &  0\\\hline
+\end{tabular}
+\bigskip
+
+Careful:
+
+\url{http://www.metasploit.com/users/hdm/tools/debian-openssl/}
+
+\end{frame}
+\begin{frame}
+\frametitle{Fibonacci}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item produce floating-point random numbers directly using differences,
+sums, or products.
+    \item Typical subtractive generator:
+\[
+x_k = x_{k-17} - x_{5}
+\]
+with ``lags'' of 17 and 5.
+    \item Lags much be chosen very carefully
+    \item negative results need fixing
+    \item more storage needed than congruential generators
+    \item no division needed
+    \item very very good statistical properties
+    \item long periods since repetition does not imply a period
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Sampling over intervals}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+    If we need a uniform distribution over $[a,b)$, then we modify $x_k$ on
+$[0,1)$ by
+\[
+(b-a)x_k + a
+\]
+\end{frame}
+\begin{frame}
+\frametitle{Non-uniform distributions}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item sampling nonuniform distributions is much more difficult
+    \item if the cumulative distribution function is invertible, then we can
+generate the non-uniform sample from the uniform:
+\[
+f(t) = \lambda e^{-\lambda t},\quad t>0
+\]
+thus
+\[
+y_k = -\log(1-x_k)/\lambda
+\]
+where $x_k$ is uniform in $[0,1)$.
+    \item ...not so easy in general
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Quasi-Random Sequences}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item For some applications, reasonable uniform coverage of the sample is
+more important than the ``randomness''
+    \item True random samples often exhibit clumping
+    \item Perfectly uniform samples uses a uniform grid, but does not scale well
+at high dimensions
+    \item quasi-random sequences attempt randomness while maintaining coverage
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Quasi-Random Sequences}
+\framesubtitle{From M. Heath, \emph{Scientific Computing, 2nd ed.}, CS450}
+\begin{itemize}
+    \item quasi random sequences are not random, but give random appearance
+    \item by design, the points avoid each other, resulting in no clumping
+\end{itemize}
+\bigskip
+
+\url{http://www.cse.uiuc.edu/iem/random/quasirnd/}
+\end{frame}
+\end{document}

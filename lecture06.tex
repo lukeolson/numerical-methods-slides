@@ -1,0 +1,913 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pifont}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 6}
+\subtitle{Gaussian Elimination}
+\date{September 10, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination}
+
+\begin{itemize}
+\item   Solving Triangular Systems
+\item   Gaussian Elimination Without Pivoting
+	\begin{itemize}
+        \item   Hand Calculations
+		\item   Cartoon Version
+		\item   Algorithm
+	\end{itemize}
+\item Elementary Elimination Matrices And LU Factorization
+%\item   Gaussian Elimination with Pivoting
+%	\begin{itemize}
+%		\item   Row or Column Interchanges, or Both
+%		\item   Implementation
+%	\end{itemize}
+%\item   Solving Systems with the Backslash Operator
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination}
+Gaussian elimination is a mostly general method for solving square systems.\\
+\vspace{0.5cm}
+We will work with systems in their matrix form, such as
+\begin{align*}
+      x_1 + 3x_2 + 5x_3 &= 4\\
+     9x_1 + 7x_2 + 8x_3 &= 6\\
+     3x_1 + 2x_2 + 7x_3 &= 1,\\
+\end{align*}
+in its equivalent matrix form,
+\begin{equation*}
+    \begin{bmatrix} 1 & 3 & 5 \\
+                    9 & 7 & 8 \\
+                    3 & 2 & 7 \\
+    \end{bmatrix}
+    \begin{bmatrix} x_1 \\
+                    x_2 \\
+                    x_3 \\
+    \end{bmatrix} =
+    \begin{bmatrix} 4 \\
+                    6 \\
+                    1 \\
+    \end{bmatrix}.
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Triangular Systems}
+
+The generic lower and upper triangular matrices are
+\begin{equation*}
+    L = \begin{bmatrix} l_{11} &   0    & \cdots &   0    \\
+                        l_{21} & l_{22} &        &   0    \\
+                        \vdots &        & \ddots & \vdots \\
+                        l_{n1} &        & \cdots & l_{nn} \\
+        \end{bmatrix}
+\end{equation*}
+and
+\begin{equation*}
+    U = \begin{bmatrix} u_{11} & u_{12} & \cdots & u_{1n} \\
+                           0   & u_{22} &        & u_{2n}  \\
+                        \vdots &        & \ddots & \vdots \\
+                           0   &        & \cdots & u_{nn} \\
+        \end{bmatrix}
+\end{equation*}
+
+The triangular systems
+\begin{equation*}
+    Ly = b \ \ \ \ \ \ \ \ \ Ux = c
+\end{equation*}
+are easily solved by \textbf{forward substitution} and
+\textbf{backward substitution}, respectively
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Solving Triangular Systems}
+
+Solving for $x_1, x_2, \ldots, x_n$
+for an upper triangular system is called \textbf{backward substitution}.
+\begin{lstlisting}[mathescape,caption=backward substitution (page 270),label=algo:backsub]
+  given $A$ (upper $\bigtriangleup$), $b$               
+  $x_n = b_n/a_{nn}$           
+  for $i=n-1\ldots 1$          
+    $s = b_i$                  
+    for $j = i+1\ldots n$    
+      $s = s - a_{i,j}x_j$   
+    end                      
+    $x_i = s/a_{i,i}$          
+  end                          
+\end{lstlisting}
+
+\onslide<2->{
+Using forward or backward substitution is sometimes referred
+to as performing a \textbf{triangular solve}.
+}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Operations?}
+\begin{block}{cheap!}
+  \begin{itemize}
+    \item begin in the bottom corner: 1 div
+    \item row -2: 1 mult, 1 add, 1 div, or 3 FLOPS
+    \item row -3: 2 mult, 2 add, 1 div, or 5 FLOPS
+    \item row -4: 3 mult, 3 add, 1 div, or 7 FLOPS
+    \item $\vdots$
+    \item row -$j$: about $2j-1$ FLOPS
+  \end{itemize}
+  Total FLOPS? $\sum_{j=1}^{n} 2j-1 = 2 \frac{ n(n+1)}{2}-n$ or $\mO(n^2)$ FLOPS
+\end{block}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Gaussian Elimination}
+\begin{itemize}
+    \item Triangular systems are easy to solve in $\mO(n^2)$ FLOPS
+    \item Goal is to transform an arbitrary, square system into an
+          equivalent upper triangular system
+    \item Then easily solve with backward substitution
+\end{itemize}
+\vspace{1.0cm}
+This process is equivalent to the \emph{formal solution} of 
+$Ax=b$, where $A$ is an \matdim{n}{n} matrix.
+ \begin{equation*}
+         x = A^{-1}b
+ \end{equation*}
+ \textbf{In MATLAB:}
+ \begin{lstlisting}[language=matlab]
+ >> A = ...
+ >> b = ...
+ >> x = A\b
+ \end{lstlisting}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Hand Calculations}
+
+Solve
+\begin{align*}
+      x_1 + 3x_2 &= 5\\
+    2 x_1 + 4x_2 &= 6
+\end{align*}
+
+Subtract 2 times the first equation from the second equation
+\begin{align*}
+      x_1 + 3x_2 &= 5\\
+          - 2x_2 &= -4
+\end{align*}
+This equation is now in triangular form, and can be solved by
+backward substitution.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Hand Calculations}
+
+The elimination phase transforms the matrix and right
+hand side to an equivalent system
+\begin{center}
+\begin{minipage}[b]{0.4\textwidth}
+\begin{align*}
+      x_1 + 3x_2 &= 5\\
+    2 x_1 + 4x_2 &= 6
+\end{align*}
+\end{minipage}
+\begin{minipage}[c]{0.1\textwidth}
+\raisebox{5ex}{$\longrightarrow$}
+\end{minipage}
+\begin{minipage}[b]{0.4\textwidth}
+\begin{align*}
+      x_1 + 3x_2 &= 5\\
+          - 2x_2 &= -4
+\end{align*}
+\end{minipage}
+\end{center}
+The two systems have the same solution.  The right hand
+system is upper triangular.
+
+Solve the second equation for $x_2$
+\begin{equation*}
+    x_2 = \frac{-4}{-2} = 2
+\end{equation*}
+Substitute the newly found value of $x_2$ into the
+first equation and solve for $x_1$.
+\begin{equation*}
+    x_1 = 5 - (3)(2) = -1
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Hand Calculations}
+
+When performing Gaussian Elimination by hand, we can avoid
+copying the $x_i$ by using a shorthand notation.
+
+For example, to solve:
+\begin{equation*}
+    A = \left[\negthickspace\begin{array}{rrr} -3 &  2 & -1  \\
+                                                6 & -6 &  7 \\
+                                                3 & -4 &  4 \end{array}\negthickspace\right]
+    \ \ \ \ \ \ \ \ \
+    b = \left[\negthickspace\begin{array}{r} -1 \\ -7 \\ -6 \end{array}\negthickspace\right]
+\end{equation*}
+Form the \emph{augmented} system
+\begin{equation*}
+    \tilde{A} = \left[ A\ \ b \right] =
+      \left[
+           \left.\negthickspace\begin{array}{rrr}  -3 &  2 & -1  \\
+                                                    6 & -6 &  7 \\
+                                                    3 & -4 &  4 \end{array}
+           \right|\begin{array}{r} -1 \\ -7 \\ -6 \end{array}\negthickspace\right]
+\end{equation*}
+The vertical bar inside the augmented matrix is just
+a reminder that the last column is the $b$ vector.
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Hand Calculations}
+
+Add 2 times row 1 to row 2, and add (1 times) row 1 to row 3
+\begin{equation*}
+    \tilde{A}_{(1)} = \left[
+           \left.\negthickspace\begin{array}{rrr}  -3 &  2 & -1 \\
+                                                    0 & -2 &  5 \\
+                                                    0 & -2 &  3 \end{array}
+           \right|\begin{array}{r} -1 \\ -9 \\ -7 \end{array}\negthickspace\right]
+\end{equation*}
+Subtract (1 times) row 2 from row 3
+\begin{equation*}
+    \tilde{A}_{(2)} = \left[
+           \left.\negthickspace\begin{array}{rrr}  -3 &  2 & -1 \\
+                                                    0 & -2 &  5 \\
+                                                    0 &  0 & -2 \end{array}
+           \right|\begin{array}{r} -1 \\ -9 \\ 2 \end{array}\negthickspace\right]
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Hand Calculations}
+
+The transformed system is now in upper triangular form
+\begin{equation*}
+    \tilde{A}_{(2)} = \left[
+           \left.\negthickspace\begin{array}{rrr}  -3 &  2 & -1 \\
+                                                    0 & -2 &  5 \\
+                                                    0 &  0 & -2 \end{array}
+           \right|\begin{array}{r} -1 \\ -9 \\ 2 \end{array}\negthickspace\right]
+\end{equation*}
+Solve by back substitution to get
+\begin{align*}
+    x_3 &= \frac{\ \,2}{-2} = -1                             \\[10pt]
+    x_2 &= \frac{\ \,1}{-2}\left(-9 -5x_3 \right) = 2        \\[10pt]
+    x_1 &= \frac{\ \,1}{-3}\left(-1 -2x_2 + x_3 \right) = 2  \\[10pt]
+\end{align*}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Cartoon Version}
+
+Start with the augmented system
+\begin{center}
+    \begin{tabular}{ccccc}
+        $\begin{bmatrix}   x  & x & x & x    & x \\
+                           x  & x  & x  & x  & x  \\
+                           x  & x  & x  & x  & x \\
+                           x  & x  & x  & x  & x \end{bmatrix}$
+     \end{tabular}
+\end{center}
+The $x$'s represent numbers, they are generally \emph{not} the same
+values.\\
+\vspace{0.5cm}
+Begin elimination using the first row as the \emph{pivot row}
+and the first element of the first row as the pivot
+element
+\begin{center}
+    \begin{tabular}{ccccc}
+        $\begin{bmatrix}\boxed{x} & x & x & x & x \\
+                           x  & x  & x  & x  & x  \\
+                           x  & x  & x  & x  & x \\
+                           x  & x  & x  & x  & x \end{bmatrix}$
+     \end{tabular}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[shrink]
+\frametitle{Gaussian Elimination --- Cartoon Version}
+\begin{itemize}
+    \item Eliminate elements under the pivot element in the first column.
+    \item $x'$ indicates a value that has been changed once.
+\end{itemize}
+\begin{center}
+	\renewcommand{\arraystretch}{1.3}
+	\footnotesize
+	\begin{tabular}{ccccc}
+		$\begin{bmatrix}\boxed{x} & x & x & x & x \\
+						   x  & x  & x  & x  & x  \\
+						   x  & x  & x  & x  & x \\
+						   x  & x  & x  & x  & x \end{bmatrix}$
+		& $\longrightarrow$ &
+		$\begin{bmatrix}\boxed{x} & x & x & x & x \\
+						   0  & x' & x' & x' & x' \\
+						   x  & x  & x  & x  & x \\
+						   x  & x  & x  & x  & x \end{bmatrix}$ \\[55pt]
+		& $\longrightarrow$ &
+		$\begin{bmatrix}\boxed{x} & x & x & x & x \\
+						   0  & x' & x' & x' & x' \\
+						   0  & x' & x' & x' & x' \\
+						   x  & x  & x  & x  & x \end{bmatrix}$ \\[55pt]
+		& $\longrightarrow$ &
+		$\begin{bmatrix}\boxed{x} & x & x & x & x \\
+						   0  & x' & x' & x' & x' \\
+						   0  & x' & x' & x' & x' \\
+						   0  & x' & x' & x' & x'\end{bmatrix}$ &
+	\end{tabular}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Cartoon Version}
+\begin{itemize}
+    \item The pivot element is now the diagonal element in the second row.
+    \item Eliminate elements under the pivot element in the second column.
+    \item $x''$ indicates a value that has been changed twice.
+\end{itemize}
+\begin{center}
+	\renewcommand{\arraystretch}{1.3}
+	\footnotesize
+	\begin{tabular}{ccccc}
+		$\begin{bmatrix} x &   x        & x & x & x    \\
+						 0 & \boxed{x'} & x' & x' & x' \\
+						 0 &   x'       & x' & x' & x' \\
+						 0 &   x'       & x' & x' & x' \end{bmatrix}$
+		& $\longrightarrow$ &
+		$\begin{bmatrix} x &   x        & x   & x   & x   \\
+						 0 & \boxed{x'} & x'  & x'  & x'  \\
+						 0 &   0        & x'' & x'' & x'' \\
+						 0 &   x'       & x'  & x'  & x'\end{bmatrix}$ \\[55pt]
+		& $\longrightarrow$ &
+		$\begin{bmatrix} x &   x        & x   & x   & x   \\
+						 0 & \boxed{x'} & x'  & x'  & x'  \\
+						 0 &   0        & x'' & x'' & x'' \\
+						 0 &   0        & x'' & x'' & x'' \end{bmatrix}$
+	\end{tabular}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Cartoon Version}
+\begin{itemize}
+    \item The pivot element is now the diagonal element in the third row.
+    \item Eliminate elements under the pivot element in the third column.
+    \item $x'''$ indicates a value that has been changed three times.
+\end{itemize}
+\begin{center}
+	\renewcommand{\arraystretch}{1.3}
+	\footnotesize
+	\begin{tabular}{ccccc}
+		$\begin{bmatrix} x & x  &     x       & x   & x   \\
+						 0 & x' &     x'      & x'  & x'  \\
+						 0 & 0  & \boxed{x''} & x'' & x'' \\
+						 0 & 0  &     x''     & x'' & x'' \end{bmatrix}$ 
+		& $\longrightarrow$ &
+		$\begin{bmatrix} x & x  &     x       & x    & x   \\
+						 0 & x' &     x'      & x'   & x'  \\
+						 0 & 0  & \boxed{x''} & x''  & x'' \\
+						 0 & 0  &     0       & x''' & x''' \end{bmatrix}$ 
+	\end{tabular}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gaussian Elimination --- Cartoon Version}
+
+\textbf{Summary}
+\vspace{0.0cm}
+\begin{itemize}
+\item	Gaussian Elimination is an orderly process for transforming
+		an augmented matrix into an equivalent upper triangular form.
+\item	The elimination operation at the $k^{th}$ step is
+\begin{equation*}
+			\tilde{a}_{ij} = \tilde{a}_{ij} - (\tilde{a}_{ik}/\tilde{a}_{kk})\tilde{a}_{kj},\quad i>k, \quad j\ge k
+\end{equation*}
+%% WDG - I changed this to match the form on slide 18
+\item	Elimination requires three nested loops.
+\item	The result of the elimination phase is represented by the image below.
+\end{itemize}
+\begin{center}
+	\renewcommand{\arraystretch}{1.3}
+	\small
+	\begin{tabular}{ccccc}
+        $\begin{bmatrix}   x  & x & x & x & x \\
+                           x  & x  & x  & x  & x  \\
+                           x  & x  & x  & x  & x \\
+                           x  & x  & x  & x  & x \end{bmatrix}$
+		& $\longrightarrow$ &
+		$\begin{bmatrix} x & x  &  x   & x    & x   \\
+						 0 & x' &  x'  & x'   & x'  \\
+						 0 & 0  &  x'' & x''  & x'' \\
+						 0 & 0  &  0   & x''' & x''' \end{bmatrix}$ 
+	\end{tabular}
+\end{center}
+
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Gaussian Elimination}
+\textbf{Summary}
+\begin{itemize}
+  \item Transform a linear system into (upper) triangular form.  i.e.
+transform lower triangular part to zero
+\item Transformation is done by taking linear combinations of rows
+\item Example: $a=\begin{bmatrix}a_1\\ a_2\end{bmatrix}$
+\item If $a_1 \ne 0$, then
+\[
+\begin{bmatrix}
+1 & 0 \\
+-a_2 / a_1 & 1\\
+\end{bmatrix}
+\begin{bmatrix}
+a_1 \\
+a_2\\
+\end{bmatrix}
+=
+\begin{bmatrix}
+a_1 \\
+0\\
+\end{bmatrix}
+\]
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}[fragile]
+\frametitle{Gaussian Elimination Algorithm}
+
+\begin{lstlisting}[mathescape,caption=Forward Elimination
+beta,label=algo:fwdelimb]
+  given $A$, $b$
+                               
+  for $k=1\dots n-1$          
+    for $i = k+1\ldots n$      
+      for $j = k\ldots n$      
+        $a_{ij} = a_{ij} - (a_{ik}/a_{kk}) a_{kj}$
+      end                      
+      $b_{i} = b_{i} - (a_{ik}/a_{kk}) b_{k}$
+    end                        
+  end                          
+\end{lstlisting}
+\vspace{0.3cm}
+\begin{itemize}
+  \item the multiplier can be moved outside the $j$-loop
+  \item no reason to actually compute 0
+\end{itemize}
+\begin{alertblock}{}
+Challenge: The loops over $i$ and $j$ may be exchanged---why would one be 
+preferable?
+\end{alertblock}
+\vfill
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Gaussian Elimination Algorithm}
+
+\begin{lstlisting}[mathescape,caption=Forward Elimination,label=algo:fwdelim]
+  given $A$, $b$
+                               
+  for $k=1\dots n-1$          
+    for $i = k+1\ldots n$      
+      $xmult = a_{ik}/a_{kk}$
+      $a_{ik} = xmult$
+      for $j = k+1\ldots n$      
+        $a_{ij} = a_{ij} - (xmult) a_{kj}$
+      end                      
+      $b_{i} = b_{i} - (xmult) b_{k}$
+    end                        
+  end                          
+\end{lstlisting}
+\vfill
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Naive Gaussian Elimination Algorithm}
+
+\begin{itemize}
+  \item Forward Elimination
+  \item + Backward substitution
+  \item = Naive Gaussian Elimination
+\end{itemize}
+\vfill
+
+\begin{example}
+GE\_naive.m
+GE\_naive\_test.m
+\end{example}
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Forward Elimination Cost?}
+What is the cost in converting from $A$ to $U$?
+\begin{center}
+\begin{tabular}{c c c c}\hline
+Step & Add & Multiply & Divide\\\hline
+1 & $(n-1)^2$ & $(n-1)^2$ & $n-1$\\
+2 & $(n-2)^2$ & $(n-2)^2$ & $n-2$\\
+\vdots & & & \\
+n-1 & 1 & 1 & 1\\\hline
+\end{tabular}
+\end{center}
+or
+\begin{center}
+\begin{tabular}{c c}\hline
+add & $\sum_{j=1}^{n-1} j^2$ \\
+multiply & $\sum_{j=1}^{n-1} j^2$ \\
+divide & $\sum_{j=1}^{n-1} j$ \\\hline
+\end{tabular}
+\end{center}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Forward Elimination Cost?}
+\begin{center}
+\begin{tabular}{c c}\hline
+add & $\sum_{j=1}^{n-1} j^2$ \\
+multiply & $\sum_{j=1}^{n-1} j^2$ \\
+divide & $\sum_{j=1}^{n-1} j$ \\\hline
+\end{tabular}
+\vspace{1cm}
+\end{center}
+We know $\sum_{j=1}^{p} j = \frac{p(p+1)}{2}$ and
+$\sum_{j=1}^{p} j^2= \frac{p(p+1)(2p+1)}{6}$, so
+\vspace{1cm}
+\begin{center}
+\begin{tabular}{c c}\hline
+add-subtracts & $\frac{n(n-1)(2n-1)}{6}$\\
+multiply-divides & $\frac{n(n-1)(2n-1)}{6} +
+\frac{n(n-1)}{2}=\frac{n(n^2 - 1)}{3}$\\\hline
+\end{tabular}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Forward Elimination Cost?}
+\begin{center}
+\begin{tabular}{c c}\hline
+add-subtracts & $\frac{n(n-1)(2n-1)}{6}$\\
+multiply-divides & $\frac{n(n^2 - 1)}{3}$\\
+add-subtract for $b$ & $\frac{n(n - 1)}{2}$\\
+multipply-divides for $b$ & $\frac{n(n - 1)}{2}$\\\hline
+\end{tabular}
+\end{center}
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Back Substitution Cost}
+As before
+\begin{center}
+\begin{tabular}{c c}\hline
+add-subtract & $\frac{n(n - 1)}{2}$\\
+multipply-divides & $\frac{n(n + 1)}{2}$\\\hline
+\end{tabular}
+\end{center}
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Naive Gaussian Elimination Cost}
+Combining the cost of forward elimination and backward substitution
+gives
+\begin{center}
+\begin{tabular}{c c}\hline
+add-subtracts & $\frac{n(n-1)(2n-1)}{6} + \frac{n(n - 1)}{2} + \frac{n(n - 1)}{2}$\\
+&  $=\frac{n(n-1)(2n+5)}{3}$\\
+multiply-divides & $\frac{n(n^2 - 1)}{3}+\frac{n(n - 1)}{2}+ \frac{n(n + 1)}{2}$\\
+& $=\frac{n(n^2 + 3n-1)}{3}$\\\hline
+\end{tabular}
+\end{center}
+So the total cost of add-subtract-multiply-divide is about
+\begin{equation*}
+  \frac{2}{3} n^3
+\end{equation*}
+% ----------------------
+$\Rightarrow$ double $n$ results in a cost increase of a factor of 8
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Elimination Matrices}
+\begin{itemize}
+\item Another way to zero out entries in a column of $A$
+\item Annihilate entries below $k^{th}$ element in $a$ with matrix, $M_k$:
+\[
+M_k a = 
+\begin{bmatrix}
+1 & \dots & 0 & 0 & \dots & 0\\
+\vdots & \ddots & \vdots & \vdots & \ddots & \vdots \\
+0 & \dots & 1 & 0 & \dots & 0\\
+0 & \dots & -m_{k+1} & 1 & \dots & 0\\
+\vdots & \ddots & \vdots & \vdots & \ddots & \vdots \\
+0 & \dots & -m_{n} & 0 & \dots & 1\\
+\end{bmatrix}
+\begin{bmatrix}
+a_1 \\ \vdots \\ a_k \\ a_{k+1}\\ \vdots \\ a_n
+\end{bmatrix}
+=
+\begin{bmatrix}
+a_1 \\ \vdots \\ a_k \\ 0\\ \vdots \\ 0
+\end{bmatrix}
+\]
+where $m_i = a_i/a_k$, $i=k+1,\dots,n$.
+\item The divisor $a_k$ is the ``pivot'' (and needs to be nonzero)
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}\frametitle{Elimination Matrices}
+\begin{itemize}
+  \item Matrix $M_k$ is an ``elementary elimination matrix''
+    \begin{itemize}
+        \item Adds a multiple of row $k$ to each subsequent row, with ``multipliers'' $m_i$ 
+        \item Result is zeros in the $k^{th}$ column for rows $i>k$.
+    \end{itemize}
+  \item $M_k$ is unit lower triangular and nonsingular
+  \item $M_k = I - m_k e_k^T$ where $m_k = [0,\dots,0,m_{k+1},\dots,m_n]^T$ and
+$e_k$ is the $k^{th}$ column of the identity matrix $I$.
+
+  \item $M^{-1}_k = I + m_k e_k^T$, which means $M_k^{-1}$ is also lower triangular, and we will denote $M_k^{-1} = L_k$.
+\end{itemize}
+\begin{alertblock}{}
+Can you prove $M^{-1}_k = I + m_k e_k^T$?
+\end{alertblock}
+\end{frame}
+\begin{frame}\frametitle{Elimination Matrices}
+\begin{itemize}
+    \item Suppose $M_j$ and $M_k$ are elementary elimination matrices with $j>k$,
+    then
+    \begin{align*}
+      M_k M_j & = I - m_k e_k^T - m_j e_j^T + m_k e_k^T m_j e_j^T\\
+    & = I - m_k e_k^T - m_j e_j^T + m_k (e_k^T m_j) e_j^T\\
+    & = I - m_k e_k^T - m_j e_j^T
+    \end{align*}
+    because the $k^{th}$ entry of vector $m_j$ is zero (since $j>k$)
+    \item Thus $M_k M_j$ is essentially a union of their columns.
+    \item Note this is also true for $M_k^{-1}M_j^{-1}$.
+\end{itemize}
+\end{frame}
+\begin{frame}\frametitle{Example}
+Let $a=\begin{bmatrix}2 \\ 4 \\ -2\end{bmatrix}$.
+\[
+M_1 a =
+\begin{bmatrix}
+  1 & 0 & 0\\
+-2 & 1 & 0\\
+1 & 0 & 1\\
+\end{bmatrix}
+\begin{bmatrix}
+2 \\ 4 \\ -2
+\end{bmatrix}
+     =
+\begin{bmatrix}
+2 \\ 0 \\ 0
+\end{bmatrix}
+\]
+and
+\[
+M_2 a =
+\begin{bmatrix}
+  1 & 0 & 0\\
+0 & 1 & 0\\
+0 & 1/2 & 1\\
+\end{bmatrix}
+\begin{bmatrix}
+2 \\ 4 \\ -2
+\end{bmatrix}
+      =
+\begin{bmatrix}
+2 \\ 4 \\ 0
+\end{bmatrix}
+\]
+\end{frame}
+\begin{frame}\frametitle{Example}
+  So 
+\[
+L_1 = M_1^{-1} = 
+\begin{bmatrix}
+  1 & 0 & 0\\
+2 & 1 & 0\\
+-1 & 0 & 1\\
+\end{bmatrix},\,\,
+L_2 = M_2^{-1} = 
+\begin{bmatrix}
+  1 & 0 & 0\\
+0 & 1 & 0\\
+0 & -1/2 & 1\\
+\end{bmatrix}
+\]
+which means
+\[
+M_1 M_2 =
+\begin{bmatrix}
+  1 & 0 & 0\\
+-2 & 1 & 0\\
+1 & 1/2 & 1\\
+\end{bmatrix},\,\,
+L_1 L_2 =
+\begin{bmatrix}
+  1 & 0 & 0\\
+2 & 1 & 0\\
+-1 & -1/2 & 1\\
+\end{bmatrix}
+\]
+\end{frame}
+\begin{frame}
+\frametitle{Gaussian Elimination}
+\begin{itemize}
+  \item To reduce $Ax=b$ to upper triangular form, first construct $M_1$ with
+$a_{11}$ as the pivot (eliminating the first column of $A$ below the diagonal.)
+  \item Then $M_1 A x = M_1 b$ still has the same solution.\
+  \item Next construct $M_2$ with pivot $a_{22}$ to eliminate the second column
+below the diagonal.
+  \item Then $M_2 M_1 A x = M_2 M_1 b$ still has the same solution
+  \item $M_{n-1} \dots M_1 A x = M_{n-1}\dots M_1 b$
+  \item Let $M = M_{n}M_{n-1}\dots M_1$.  Then $M A x = M b$, with $MA$ upper triangular. 
+  \item Do back substitution on $M A x = M b$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Another Way to Look at $A$}
+We've mentioned $L$ and $U$ today.  Why?
+
+Consider this
+\begin{align*}
+ A & = A\\
+ A & = (M^{-1}M) A\\
+ A & = (M_1^{-1}M_2^{-1}\dots M_n^{-1})(M_n M_{n-1} \dots M_1)A\\
+ A & = (M_1^{-1}M_2^{-1}\dots M_n^{-1}) ((M_n M_{n-1} \dots M_1)A)\\
+ A & = \phantom{(M_1^{-1}M_2^{-1}} L \phantom{M_n^{-1}) ((M_n M_{n-1}} U \phantom{M_1)A)}\\
+\end{align*}
+But $MA$ is upper triangular, and we've seen that $M_1^{-1}\dots M_n^{-1}$ is 
+lower triangular.  Thus, we have an algorithm that factors $A$ into two 
+matrices $L$ and $U$.
+\end{frame}
+
+\begin{frame}
+\frametitle{Why is this ``naive''?}
+\begin{example}
+\begin{equation*}
+A=
+\begin{bmatrix}
+  0 & 2 & 3\\
+  4 & 5 & 6\\
+  7 & 8 & 9\\
+\end{bmatrix}
+\end{equation*}
+\end{example}
+\begin{example}
+\begin{equation*}
+A=
+\begin{bmatrix}
+  1e-10 & 2 & 3\\
+  4 & 5 & 6\\
+  7 & 8 & 9\\
+\end{bmatrix}
+\end{equation*}
+\end{example}
+
+\end{frame}
+\end{document}

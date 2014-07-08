@@ -1,0 +1,1810 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usecolortheme{luke}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{pifont}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 5a}
+\subtitle{Linear Algebra Recall}
+\date{September 8, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Operations}
+
+\begin{itemize}
+    \item   Addition and Subtraction
+    \item   Multiplication by a scalar
+    \item   Transpose
+    \item   Linear Combinations of Vectors
+    \item   Inner Product
+    \item   Outer Product
+    \item   Vector Norms
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Addition and Subtraction}
+
+Addition and subtraction are element-by-element operations
+\begin{align*}
+    c = a + b\ \ \ &\Longleftrightarrow\ \ \ c_i = a_i + b_i\ \ \ i = 1,\ldots,n  \\
+    d = a - b\ \ \ &\Longleftrightarrow\ \ \ d_i = a_i - b_i\ \ \ i = 1,\ldots,n
+\end{align*}
+
+%\vspace{3ex}
+\vspace{0.0cm}
+\begin{equation*}
+    a = \begin{bmatrix} 1 \\ 2 \\ 3\end{bmatrix}
+    \qquad
+    b = \begin{bmatrix} 3 \\ 2 \\ 1\end{bmatrix}
+\end{equation*}
+
+\begin{equation*}
+    a+b = \begin{bmatrix} 4 \\ 4 \\ 4 \end{bmatrix}
+    \qquad
+    a-b = \left[\negthickspace\begin{array}{r} -2 \\ 0 \\ 2 \end{array}\right]
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Multiplication by a Scalar}
+
+Multiplication by a scalar involves multiplying each element
+in the vector by the scalar:
+\begin{equation*}
+    b = \sigma a\ \ \ \Longleftrightarrow\ \ \  b_i = \sigma a_i\ \ \ i = 1,\ldots,n
+\end{equation*}
+
+\begin{equation*}
+    a = \begin{bmatrix} 4 \\ 6 \\ 8 \end{bmatrix}
+    \qquad
+    b = \frac{a}{2} = \begin{bmatrix} 2 \\ 3  \\ 4 \end{bmatrix}
+\end{equation*}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Transpose}
+
+The \emph{transpose} of a row vector is a column vector:
+\begin{equation*}
+    u = \bigl[1, 2, 3\bigr]
+    \qquad
+    \text{then}
+    \qquad
+    u^T = \begin{bmatrix}1 \\ 2 \\ 3\end{bmatrix}
+\end{equation*}
+Likewise if $v$ is the column vector
+\begin{equation*}
+    v = \begin{bmatrix}4 \\ 5 \\ 6\end{bmatrix}
+    \qquad
+    \text{then}
+    \qquad
+    v^T = \bigl[4, 5, 6\bigr]
+\end{equation*}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Linear Combinations}
+
+Combine scalar multiplication with addition
+\begin{equation*}
+      \alpha \begin{bmatrix} u_1 \\ u_2 \\ \vdots \\ u_m\end{bmatrix}
+    + \beta  \begin{bmatrix} v_1 \\ v_2 \\ \vdots \\ v_m\end{bmatrix}
+    = \begin{bmatrix}\alpha u_1 + \beta v_1\\
+                     \alpha u_2 + \beta v_2\\
+                     \vdots \\
+                     \alpha u_m + \beta v_m  \end{bmatrix}
+    = \begin{bmatrix} w_1 \\ w_2 \\ \vdots \\ w_m \end{bmatrix}
+\end{equation*}
+
+\vspace{0.0cm}
+\begin{equation*}
+    r = \left[\negthickspace\begin{array}{r} -2 \\ 1 \\ 3 \end{array}\right]
+    \qquad
+    s = \begin{bmatrix} 1 \\ 0  \\ 3 \end{bmatrix}
+\end{equation*}
+
+\begin{equation*}
+    t = 2r + 3s = \left[\negthickspace\begin{array}{r} -4 \\ 2 \\ 6 \end{array}\right]
+                  + \begin{bmatrix} 3 \\ 0  \\ 9 \end{bmatrix}
+                = \left[\negthickspace\begin{array}{r} -1 \\ 2 \\ 15 \end{array}\right]
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[shrink]
+\frametitle{Linear Combinations}
+
+Any one vector can be created from an infinite combination
+of other ``suitable'' vectors.
+
+\begin{center}
+\begin{tabular}{cl}
+    $w=$ &  $\displaystyle\begin{bmatrix} 4 \\ 2 \end{bmatrix}
+           = 4\begin{bmatrix} 1 \\ 0 \end{bmatrix} + 2\begin{bmatrix} 0 \\ 1 \end{bmatrix}$ \\[36pt]
+    $w=$ & $\displaystyle 6\begin{bmatrix} 1 \\ 0 \end{bmatrix} - 2 \begin{bmatrix} \ \ 1 \\ -1 \end{bmatrix}$ \\[36pt]
+    $w=$ & $\displaystyle \begin{bmatrix} 2 \\ 4 \end{bmatrix} - 2 \begin{bmatrix} -1 \\ \ \ 1 \end{bmatrix}$ \\[36pt]
+    $w=$ & $\displaystyle 2\begin{bmatrix} 4 \\ 2 \end{bmatrix} - 4 \begin{bmatrix} 1 \\ 0 \end{bmatrix}
+                                              - 2 \begin{bmatrix} 0 \\ 1 \end{bmatrix}$
+\end{tabular}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Linear Combinations}
+
+\begin{columns}
+\begin{column}{0.35\textwidth}
+\textbf{Graphical interpretation:}
+\begin{itemize}
+    \item   Vector tails can be moved to convenient locations
+    \item   Magnitude and direction of vectors is preserved
+\end{itemize}
+\end{column}
+\begin{column}{0.55\textwidth}
+\begin{center}
+    \pgfimage[height=0.8\textwidth]{./figs/linearCombo2D}
+\end{center}
+\end{column}
+\end{columns}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Inner Product}
+
+In physics, analytical geometry, and engineering, the
+\textbf{dot product} has a geometric interpretation
+\begin{equation*}
+    \sigma = x \cdot y\ \ \ \Longleftrightarrow\ \ \
+    \sigma = \sum_{i = 1}^{n}{x_i y_i}
+\end{equation*}
+\begin{equation*}
+    x\cdot y = \|x\|_{2}\, \|y\|_{2} \cos\theta
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Inner Product}
+
+The inner product of $x$ and $y$ \emph{requires} that
+$x$ be a row vector
+$y$ be a column vector
+\begin{equation*}
+    \begin{bmatrix}x_1\ \ x_2\ \ x_3\ \ x_4\end{bmatrix}
+    \begin{bmatrix}y_1\\  y_2\\  y_3\\  y_4\end{bmatrix}
+    = x_1 y_1 + x_2 y_2 + x_3 y_3 + x_4 y_4
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Inner Product}
+
+For two $n$-element \emph{column} vectors, $u$ and $v$, the inner product is
+\begin{equation*}
+    \sigma = u^T v\ \ \ \Longleftrightarrow\ \ \
+    \sigma = \sum_{i = 1}^{n}{u_i v_i}
+\end{equation*}
+
+The inner product is commutative so that\newline
+(for two column vectors)
+\begin{equation*}
+    u^T v = v^T u
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Computing the Inner Product in Matlab}
+
+The \verb|*| operator performs the inner product
+if two vectors are compatible.
+
+\begin{lstlisting}[language=matlab]
+>> u = (0:3)';         %  u and v are
+>> v = (3:-1:0)';      %  column vectors
+>> s = u*v
+??? Error using ==> *
+Inner matrix dimensions must agree.
+
+>> s = u'*v
+s =
+     4
+
+>> t = v'*u
+t =
+     4
+
+>> dot(u,v)
+ans =
+     4
+\end{lstlisting}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Outer Product}
+
+\begin{minipage}[t]{0.45\textwidth}
+The inner product results in a scalar.
+
+The \emph{outer product} creates a rank-one matrix:
+\begin{equation*}
+    A = u v^T\ \ \ \Longleftrightarrow\ \ \
+    a_{i,j} = u_i v_j
+\end{equation*}
+\end{minipage}
+\hspace{5ex}
+\begin{minipage}[t]{0.45\textwidth}
+\begin{example}{Outer product of two 4-element column vectors}
+\begin{align*}
+    u v^T &= \begin{bmatrix}u_1\\ u_2\\ u_3\\ u_4\end{bmatrix}
+             \begin{bmatrix}v_1&  v_2&  v_3& v_4\end{bmatrix}   \\[8pt]
+          &= \begin{bmatrix} u_1 v_1 & u_1 v_2 & u_1 v_3 & u_1 v_4 \\
+                    u_2 v_1 & u_2 v_2 & u_2 v_3 & u_2 v_4 \\
+                    u_3 v_1 & u_3 v_2 & u_3 v_3 & u_3 v_4 \\
+                    u_4 v_1 & u_4 v_2 & u_4 v_3 & u_4 v_4
+              \end{bmatrix}
+\end{align*}
+\end{example}
+\end{minipage}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Computing the Outer Product in Matlab}
+
+The \verb|*| operator performs the outer product
+if two vectors are compatible.
+\begin{lstlisting}[language=matlab]
+u = (0:4)';
+v = (4:-1:0)';
+A = u*v'
+A =
+     0     0     0     0     0
+     4     3     2     1     0
+     8     6     4     2     0
+    12     9     6     3     0
+    16    12     8     4     0
+\end{lstlisting}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Norms}
+
+Compare magnitude of scalars with the \emph{absolute value}
+\begin{equation*}
+    \bigl| \alpha \bigr|  >  \bigl| \beta \bigr|
+\end{equation*}
+
+
+Compare magnitude of vectors with \emph{norms}
+\begin{equation*}
+    \norm{x} > \norm{y}
+\end{equation*}
+There are several ways to compute $||x||$.  In other words
+the size of two vectors can be compared with different norms.
+
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Norms}
+
+Consider two element vectors, which lie in a plane
+\begin{center}
+    \pgfimage[height=3cm]{./figs/2Dvectorsab}
+    \qquad
+    \pgfimage[height=3cm]{./figs/2Dvectorsac}
+\end{center}
+Use geometric lengths to represent the magnitudes of the vectors
+\begin{equation*}
+    \ell_a = \sqrt{4^2 + 2^2} = \sqrt{20},\qquad
+    \ell_b = \sqrt{2^2 + 4^2} = \sqrt{20},\qquad
+    \ell_c = \sqrt{2^2 + 1^2} = \sqrt{5}
+\end{equation*}
+%% \begin{align*}
+%%     \ell_a &= \sqrt{4^2 + 2^2} = \sqrt{20}\\[6pt]
+%%     \ell_b &= \sqrt{2^2 + 4^2} = \sqrt{20}\\[6pt]
+%%     \ell_c &= \sqrt{2^2 + 1^2} = \sqrt{5}
+%% \end{align*}
+
+We conclude that
+\begin{equation*}
+    \ell_a = \ell_b
+    \quad
+    \text{and}
+    \quad
+    \ell_a > \ell_c
+\end{equation*}
+or
+\begin{equation*}
+    \norm{a} = \norm{b}
+    \quad
+    \text{and}
+    \quad
+    \norm{a} > \norm{c}
+\end{equation*}
+
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The $L_2$ Norm}
+
+The notion of a geometric length for 2D or 3D vectors can be extended
+vectors with arbitrary numbers of elements.
+
+The result is called the \emph{Euclidian} or $L_2$ norm:
+\begin{equation*}
+    \|x\|_{2} = \bigl( x_1^2 + x_2^2 + \ldots + x_n^2 \bigr)^{1/2}
+                 = \left( \sum_{i=1}^{n}{x_i^2} \right)^{1/2}
+\end{equation*}
+
+The $L_2$ norm can also be expressed in terms of the inner product
+\begin{equation*}
+    \|x\|_{2} = \sqrt{x \cdot x} = \sqrt{x^T x}
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{$p$-Norms}
+
+For any positive integer $p$
+\begin{equation*}
+    \|x\|_{p} = \bigl( |x_1|^p + |x_2|^p + \ldots + |x_n|^p \bigr)^{1/p}
+\end{equation*}
+
+The $L_1$ norm is sum of absolute values
+\begin{equation*}
+    \|x\|_{1} = |x_1| + |x_2| + \ldots + |x_n| = \sum_{i=1}^{n}{|x_i|}
+\end{equation*}
+
+The $L_\infty$ norm or \emph{max norm} is
+\begin{equation*}
+    \|x\|_{\infty} = \max \left(|x_1|, |x_2|, \ldots, |x_n| \right)
+                      = \underset{i}{\max} \left( |x_i| \right)
+\end{equation*}
+Although $p$ can be any positive number, $p=1,2,\infty$ are most commonly used.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Application of Norms}
+
+\textbf{Are two vectors (nearly) equal?}\par
+Floating point comparison of two scalars with absolute value:
+\begin{equation*}
+    \frac{\bigl| \alpha - \beta  \bigr|}{\bigl| \alpha \bigr|} < \delta
+\end{equation*}
+where $\delta$ is a small tolerance.
+
+Comparison of two vectors with norms:
+\begin{equation*}
+    \frac{\norm{y-z}}{\norm{z}} < \delta
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Application of Norms}
+
+Notice that
+\begin{equation*}
+    \frac{\norm{y-z}}{\norm{z}} < \delta
+\end{equation*}
+is \textbf{not equivalent to}
+\begin{equation*}
+    \frac{\norm{y}-\norm{z}}{\norm{z}} < \delta.
+\end{equation*}
+
+This comparison is important in convergence tests for sequences
+of vectors.  
+% See Example~7.3 in the textbook.
+% WDG - I could not find this example in the 6th edition
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Application of Norms}
+
+\textbf{Creating a Unit Vector}
+
+Given $u=[u_1, u_2, \ldots, u_m]^T$, the unit vector in the direction of $u$ is
+\begin{equation*}
+    \hat{u} = \frac{u}{\|u\|_{2}}
+\end{equation*}
+
+\bigskip
+Proof:
+\begin{equation*}
+    \|{\hat{u}}\|_{2} = {\biggl\|\frac{u}{\|u\|_{2}}\biggr\|}_2 = \frac{1}{\|u\|_{2}}\|u\|_{2} = 1
+\end{equation*}
+
+\bigskip
+The following are \emph{not} unit vectors
+\begin{equation*}
+    \frac{u}{\|u\|_{1}}
+    \qquad
+    \frac{u}{\|u\|_{\infty}}
+\end{equation*}
+
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Orthogonal Vectors}
+
+From geometric interpretation of the inner product
+\begin{equation*}
+    u\cdot v = \|u\|_{2}\,\|v\|_{2}\cos\theta
+\end{equation*}
+\begin{equation*}
+    \cos\theta = \frac{u\cdot v}{\|u\|_{2}\,\|v\|_{2}}
+               = \frac{u^T v}{\|u\|_{2}\,\|v\|_{2}}
+\end{equation*}
+
+Two vectors are orthogonal when $\theta = \pi/2$ or $u\cdot v = 0$.
+
+In other words
+\begin{equation*}
+    u^T v = 0
+\end{equation*}
+\emph{if and only if} $u$ and $v$ are \emph{orthogonal}.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Orthonormal Vectors}
+
+\textbf{Orthonormal vectors} are \textbf{unit vectors} that are \emph{orthogonal}.
+
+A \textbf{unit} vector has an $L_2$ norm of one.
+
+The unit vector in the direction of $u$ is
+\begin{equation*}
+    \hat{u} = \frac{u}{\|u\|_{2}}
+\end{equation*}
+
+Since
+\begin{equation*}
+    \|u\|_{2} = \sqrt{u\cdot u}
+\end{equation*}
+it follows that $u\cdot u = 1$ if $u$ is a unit vector.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrices}
+
+\begin{itemize}
+    \item   Columns and Rows of a Matrix are Vectors
+    \item   Addition and Subtraction
+    \item   Multiplication by a scalar
+    \item   Transpose
+    \item   Linear Combinations of Vectors
+    \item   Matrix--Vector Product
+    \item   Matrix--Matrix Product
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Notation}
+
+The matrix $A$ with $m$ rows and $n$ columns looks like:
+\begin{equation*}
+    A = \begin{bmatrix} a_{11} & a_{12} & \cdots & a_{1n} \\
+                        a_{21} & a_{22} &        & a_{2n} \\
+                        \vdots &        &        & \vdots \\
+                        a_{m1} &        & \cdots & a_{mn} \\
+        \end{bmatrix}
+\end{equation*}
+
+\begin{equation*}
+    a_{ij} = \text{element in \textbf{row} $i$, and \textbf{column} $j$}
+\end{equation*}
+
+In Matlab\ we can define a matrix with
+\begin{lstlisting}[language=matlab]
+>> A = [ ... ; ... ; ... ]
+\end{lstlisting}
+where semicolons separate lists of row elements.
+
+The $a_{2,3}$ element of the Matlab\ matrix \texttt{A} is \texttt{A(2,3)}.
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrices Consist of Row and Column Vectors}
+
+\begin{minipage}[t]{0.45\textwidth}
+As a collection of column vectors
+\begin{equation*}
+    A =
+    \begin{bmatrix}\left. \begin{matrix} \\ \\ a_{(1)}  \\ \\ \\ \end{matrix}\right|
+                   \left. \begin{matrix} \\ \\ a_{(2)}  \\ \\ \\ \end{matrix}\right|
+                   \left. \begin{matrix} \\ \\ {\cdots\ } \\ \\ \\ \end{matrix}\right|
+                          \begin{matrix} \\ \\ a_{(n)}  \\ \\ \\ \end{matrix}\negthickspace
+    \end{bmatrix}
+\end{equation*}
+\end{minipage}
+\hspace{3ex}
+\begin{minipage}[t]{0.45\textwidth}
+As a collection of row vectors
+\begin{equation*}
+    A =
+    \begin{bmatrix}\begin{matrix} & & a'_{(1)}& & & \end{matrix} \\
+                   \dfrac{\makebox[1.2in]{}}{\makebox[1.2in]{}} \\
+                   \begin{matrix} & & a'_{(2)}& & & \end{matrix} \\
+                   \dfrac{\makebox[1.2in]{}}{\makebox[1.2in]{}} \\
+                   \begin{matrix} & & \vdots & & & \end{matrix} \\
+                   \dfrac{\makebox[1.2in]{}}{\makebox[1.2in]{}} \\
+                   \begin{matrix} & & a'_{(m)}& & & \end{matrix} \\
+    \end{bmatrix}
+\end{equation*}
+A prime is used to designate a row vector on this and the following pages.
+\end{minipage}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Preview of the Row and Column View}
+
+    \begin{center}
+        \begin{minipage}{1.5in}
+            \begin{center}
+                Matrix and\\
+                vector operations
+            \end{center}
+        \end{minipage}
+
+        \hspace{0.125in}
+        {\Large$\updownarrow$}
+        \hspace{0.125in}
+
+        \begin{minipage}{1.5in}
+            \begin{center}
+                Row and column\\
+                operations
+            \end{center}
+        \end{minipage}
+
+        \hspace{0.125in}
+        {\Large$\updownarrow$}
+        \hspace{0.125in}
+
+        \begin{minipage}{1.5in}
+            \begin{center}
+                Element-by-element\\
+                operations
+            \end{center}
+        \end{minipage}
+        \end{center}
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix Operations}
+
+\begin{itemize}
+    \item   Addition and subtraction
+    \item   Multiplication by a Scalar
+    \item   Matrix Transpose
+    \item   Matrix--Vector Multiplication
+    \item   Vector--Matrix Multiplication
+    \item   Matrix--Matrix Multiplication
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix Operations}
+
+\textbf{Addition and subtraction}
+\begin{equation*}
+    C = A + B
+\end{equation*}
+or
+\begin{equation*}
+    c_{i,j} = a_{i,j} + b_{i,j}\ \ i = 1,\ldots,m;\ \ j = 1,\ldots, n
+\end{equation*}
+
+\vspace{2ex}
+
+\textbf{Multiplication by a Scalar}
+\begin{equation*}
+    B = \sigma A
+\end{equation*}
+or
+\begin{equation*}
+    b_{i,j} = \sigma a_{i,j}\ \ \ i = 1,\ldots,m;\ \ j = 1,\ldots, n
+\end{equation*}
+
+\begin{block}{Note}
+    Commas in subscripts are necessary when the subscripts are assigned numerical
+    values.  For example, $a_{2,3}$ is the row 2, column 3 element of matrix $A$,
+    whereas $a_{23}$ is the $23\mathrm{rd}$ element of vector $a$.  When variables
+    appear in indices, such as $a_{ij}$ or $a_{i,j}$, the comma is optional
+\end{block}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Matrix Transpose}
+
+\begin{equation*}
+    B = A^T
+\end{equation*}
+or
+\begin{equation*}
+    b_{i,j} = a_{j,i}\ \ \ i = 1,\ldots,m;\ \ j = 1,\ldots, n
+\end{equation*}
+
+In Matlab\
+\begin{lstlisting}[language=matlab]
+>> A = [0 0 0; 0 0 0; 1 2 3; 0 0 0]
+A =
+	 0     0     0
+	 0     0     0
+	 1     2     3
+	 0     0     0
+
+>> B = A'
+B =
+	 0     0     1     0
+	 0     0     2     0
+	 0     0     3     0
+\end{lstlisting}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix--Vector Product}
+
+\begin{itemize}
+    \item   The Column View
+        \begin{itemize}
+           \item   gives mathematical insight
+           \item[]    \vspace{2ex}
+        \end{itemize}
+    \item   The Row View
+        \begin{itemize}
+           \item   easy to do by hand
+           \item[]    \vspace{2ex}
+        \end{itemize}
+    \item   The Vector View
+        \begin{itemize}
+           \item   A square matrix rotates and stretches a vector
+           \item[]    \vspace{2ex}
+        \end{itemize}
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Column View of Matrix--Vector Product}
+
+Consider a \textbf{linear combination of a set of column vectors}
+$\{a_{(1)}, a_{(2)}, \ldots, a_{(n)}\}$.  Each $a_{(j)}$ has $m$ elements
+
+Let $x_i$ be a set (a vector) of scalar multipliers
+\begin{equation*}
+    x_1 a_{(1)} + x_2 a_{(2)} +  \ldots + x_n a_{(n)} = b
+\end{equation*}
+or
+\begin{equation*}
+    \sum_{j=1}^n a_{(j)}x_j = b
+\end{equation*}
+Expand the (hidden) row index
+\begin{equation*}
+      x_1 \begin{bmatrix} a_{11} \\ a_{21} \\ \vdots \\ a_{m1} \end{bmatrix}
+    + x_2 \begin{bmatrix} a_{12} \\ a_{22} \\ \vdots \\ a_{m2} \end{bmatrix}
+    + \cdots
+    + x_n \begin{bmatrix} a_{1n} \\ a_{2n} \\ \vdots \\ a_{mn} \end{bmatrix}
+    = \begin{bmatrix} b_1 \\ b_2 \\ \vdots \\ b_m \end{bmatrix}
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Column View of Matrix--Vector Product}
+
+Form a matrix with the $a_{(j)}$ as columns
+\begin{equation*}
+    \begin{bmatrix}\left. \begin{matrix} \\ \\ a_{(1)}  \\ \\ \\ \end{matrix}\right|
+                   \left. \begin{matrix} \\ \\ a_{(2)}  \\ \\ \\ \end{matrix}\right|
+                   \left. \begin{matrix} \\ \\ {\cdots\ } \\ \\ \\ \end{matrix}\right|
+                          \begin{matrix} \\ \\ a_{(n)}  \\ \\ \\ \end{matrix}\negthickspace
+    \end{bmatrix}
+    \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_n \end{bmatrix}
+    =
+    \begin{bmatrix}  \\  \\ b \\  \\  \\ \end{bmatrix}
+\end{equation*}
+Or, writing out the elements
+\begin{equation*}
+    \begin{bmatrix} a_{11} & a_{12} & \cdots & a_{1n} \\
+                    a_{21} & a_{22} & \cdots & a_{2n} \\
+                           &        &        &        \\
+                    \vdots & \vdots &        & \vdots \\
+                           &        &        &        \\
+                    a_{m1} & a_{m2} & \cdots & a_{mn}
+    \end{bmatrix}
+    \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_n \end{bmatrix}
+    =
+    \begin{bmatrix} b_1 \\ b_2 \\  \\ \vdots \\ \\ b_m\end{bmatrix}
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Column View of Matrix--Vector Product}
+
+Thus, the matrix-vector product is
+\begin{equation*}
+    \begin{bmatrix} a_{11} & a_{12} & \cdots & a_{1n} \\
+                    a_{21} & a_{22} & \cdots & a_{2n} \\
+                           &        &        &        \\
+                    \vdots & \vdots &        & \vdots \\
+                           &        &        &        \\
+                    a_{m1} & a_{m2} & \cdots & a_{mn}
+    \end{bmatrix}
+    \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_n \end{bmatrix}
+    =
+    \begin{bmatrix} b_1 \\ b_2 \\  \\ \vdots \\ \\ b_m\end{bmatrix}
+\end{equation*}
+
+Save space with matrix notation
+\begin{equation*}
+    Ax = b
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Column View of Matrix--Vector Product}
+
+\begin{center}
+\begin{minipage}{4.75in}
+    \bfseries
+    The matrix--vector product $b = Ax$ \\
+    produces a vector $b$ from a linear \\
+    combination of the columns in $A$.
+\end{minipage}
+\end{center}
+
+\begin{equation*}
+    b = A x\ \ \ \Longleftrightarrow
+           \ \ \ b_i = \sum_{j=1}^{n}{ a_{ij} x_j }
+\end{equation*}
+where $x$ and $b$ are column vectors
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Column View of Matrix--Vector Product}
+
+\begin{lstlisting}[mathescape,caption=Matrix--Vector Multiplication by Columns,label=algo:MatVecCol]
+  initialize:  $b = \mathtt{zeros}(m,1)$       
+  for $j=1,\ldots,n$      
+    for $i=1,\ldots,m$        
+      $b(i) = A(i,j) x(j) + b(i)$  
+    end                     
+  end
+\end{lstlisting}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Compatibility Requirement}
+
+\textbf{Inner dimensions must agree}
+\begin{equation*}
+    \begin{array}{cccc}
+                A       &        x        & = & b \\[3pt]
+        [\matdim{m}{n}] & [\matdim{n}{1}] & = & [\matdim{m}{1}]
+    \end{array}
+\end{equation*}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Row View of Matrix--Vector Product}
+
+Consider the following matrix--vector product written out as a linear
+combination of matrix columns
+\begin{equation*}
+    \left[\negthickspace
+          \begin{array}{rrrr}  5 &  0  &  0  &  -1  \\
+                              -3 &  4  & -7  &   1  \\
+                               1 &  2  &  3  &   6  \end{array}\negthickspace\right]
+    \left[\negthickspace
+          \begin{array}{r}  4 \\  2  \\  -3  \\  -1 \end{array}\negthickspace\right]
+\end{equation*}
+\begin{equation*}
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \
+    = 4\left[\negthickspace\begin{array}{r}  5 \\ -3 \\  1 \end{array}\negthickspace\right]
+    + 2\left[\negthickspace\begin{array}{r}  0 \\  4 \\  2 \end{array}\negthickspace\right]
+    - 3\left[\negthickspace\begin{array}{r}  0 \\ -7 \\  3 \end{array}\negthickspace\right]
+    - 1\left[\negthickspace\begin{array}{r} -1 \\  1 \\  6 \end{array}\negthickspace\right]
+\end{equation*}
+
+\vspace{2ex}
+This is the column view.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Row View of Matrix--Vector Product}
+
+Now, group the multiplication and addition operations by row:
+\begin{equation*}
+      4\left[\negthickspace\begin{array}{r}  5 \\ -3 \\  1 \end{array}\negthickspace\right]
+    + 2\left[\negthickspace\begin{array}{r}  0 \\  4 \\  2 \end{array}\negthickspace\right]
+    - 3\left[\negthickspace\begin{array}{r}  0 \\ -7 \\  3 \end{array}\negthickspace\right]
+    - 1\left[\negthickspace\begin{array}{r} -1 \\  1 \\  6 \end{array}\negthickspace\right]
+    \qquad\qquad\qquad\qquad
+\end{equation*}
+\begin{equation*}
+    \hfill
+    = \left[\negthickspace
+          \begin{array}{rcrcrcr}
+                     (5)(4)  & + & (0)(2) & + & (0)(-3)  & + & (-1)(-1) \\
+                     (-3)(4) & + & (4)(2) & + & (-7)(-3) & + & (1)(-1)  \\
+                     (1)(4)  & + & (2)(2) & + & (3)(-3)  & + & (6)(-1)  \end{array}\negthickspace\right]
+    \quad=\quad
+    \left[\negthickspace
+          \begin{array}{r}  21 \\  16  \\ -7 \end{array}\negthickspace\right]
+\end{equation*}
+
+\vspace{3ex}
+Final result is identical to that obtained with the column view.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Row View of Matrix--Vector Product}
+
+Product of a \matdim{3}{4} matrix, $A$, with a \matdim{4}{1} vector, $x$, looks like
+\begin{equation*}
+    \begin{bmatrix}\begin{matrix} & & a'_{(1)}& & & \end{matrix} \\
+                   \dfrac{\makebox[1.2in]{}}{\makebox[1.2in]{}} \\
+                   \begin{matrix} & & a'_{(2)}& & & \end{matrix} \\
+                   \dfrac{\makebox[1.2in]{}}{\makebox[1.2in]{}} \\
+                   \begin{matrix} & & a'_{(3)}& & & \end{matrix}
+    \end{bmatrix}
+    \begin{bmatrix} x_1 \\ x_2 \\ x_3 \\ x_4 \end{bmatrix}
+    =
+    \begin{bmatrix} a'_{(1)}\cdot x \\[4pt] a'_{(2)}\cdot x \\[4pt] a'_{(3)}\cdot x \end{bmatrix}
+    =
+    \begin{bmatrix} b_1 \\ b_2 \\ b_3 \end{bmatrix}
+\end{equation*}
+where $a'_{(1)}$, $a'_{(2)}$, and $a'_{(3)}$, are the \emph{row vectors}
+constituting the $A$ matrix.
+
+\vspace{3ex}
+
+\begin{center}
+    \begin{minipage}{4.75in}
+        \bfseries
+        The matrix--vector product $b = Ax$\\
+        produces elements in $b$ by forming\\
+        inner products of the rows of $A$ with $x$.
+    \end{minipage}
+\end{center}
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Row View of Matrix--Vector Product}
+
+\begin{center}
+    \pgfimage[height=3cm]{./figs/matrixVectorRows}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector View of Matrix--Vector Product}
+
+If $A$ is square, the product $Ax$ has the effect of
+stretching and rotating $x$.
+
+Pure stretching of the column vector
+\begin{equation*}
+    \begin{bmatrix}2 & 0 & 0\\ 0 & 2 & 0 \\ 0 & 0 & 2 \end{bmatrix}
+    \begin{bmatrix}1 \\ 2 \\ 3 \end{bmatrix}
+    =
+    \begin{bmatrix}2 \\ 4 \\ 6 \end{bmatrix}
+\end{equation*}
+
+Pure rotation of the column vector
+\begin{equation*}
+    \begin{bmatrix}0 & -1 & 0\\ 1 & 0 & 0 \\ 0 & 0 & 1 \end{bmatrix}
+    \begin{bmatrix}1 \\ 0 \\ 0 \end{bmatrix}
+    =
+    \begin{bmatrix}0 \\ 1 \\ 0 \end{bmatrix}
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector--Matrix Product}
+
+\textbf{Matrix--vector product}
+\begin{center}
+    \pgfimage[height=3cm]{./figs/matrixVectorProduct}
+\end{center}
+
+\textbf{Vector--Matrix product}
+\begin{center}
+    \pgfimage[height=3cm]{./figs/vectorMatrixProduct}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector--Matrix Product}
+
+\textbf{Compatibility Requirement:}
+\textbf{Inner dimensions must agree}
+\begin{equation*}
+    \begin{array}{cccc}
+                u       &        A        & = & v \\[3pt]
+        [\matdim{1}{m}] & [\matdim{m}{n}] & = & [\matdim{1}{n}]
+    \end{array}
+\end{equation*}
+%Inner dimensions must agree
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix--Matrix Product}
+
+Computations can be organized in \textbf{six different ways}
+We'll focus on just two
+\begin{itemize}
+    \item   Column View --- extension of column view of matrix--vector product
+    \item   Row View --- inner product algorithm, extension of column view of matrix--vector product
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Column View of Matrix--Matrix Product}
+
+The product $AB$ produces a matrix $C$.  The columns of $C$
+are linear combinations of the columns of $A$.
+\begin{equation*}
+    AB = C \qquad \Longleftrightarrow \qquad c_{(j)} = Ab_{(j)}
+\end{equation*}
+$c_{(j)}$ and $b_{(j)}$ are column vectors.
+
+\begin{center}
+    \pgfimage[height=3cm]{./figs/matrixMatrixColumns}
+\end{center}
+
+The column view of the matrix--matrix product $AB=C$ is helpful because
+it shows the relationship between the columns of $A$ and the columns of $C$.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Inner Product (Row) View of Matrix--Matrix Product}
+
+The product $AB$ produces a matrix $C$.  The $c_{ij}$ element
+is the \emph{inner product} of row $i$ of $A$ and column $j$ of $B$.
+\begin{equation*}
+    AB = C \qquad \Longleftrightarrow \qquad c_{ij} = a'_{(i)}b_{(j)}
+\end{equation*}
+$a'_{(i)}$ is a row vector, $b_{(j)}$ is a column vector.
+
+\begin{center}
+    \pgfimage[height=3cm]{./figs/matrixMatrixRows}
+\end{center}
+
+The inner product view of the matrix--matrix product is easier
+to use for hand calculations.
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix--Matrix Product Summary}
+
+
+The \textbf{Matrix--vector product} looks like:
+\begin{equation*}
+    \begin{bmatrix}\bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \end{bmatrix}
+    \begin{bmatrix}\bullet \\ \bullet \\ \bullet \end{bmatrix}
+    =
+    \begin{bmatrix}\bullet \\ \bullet \\ \bullet \\ \bullet \end{bmatrix}
+\end{equation*}
+
+The \textbf{vector--Matrix product} looks like:
+\begin{equation*}
+    \begin{bmatrix}\bullet & \bullet & \bullet & \bullet \end{bmatrix}
+    \begin{bmatrix}\bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \end{bmatrix}
+    =
+    \begin{bmatrix}\bullet & \bullet & \bullet \end{bmatrix}
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix--Matrix Product Summary}
+
+The \textbf{Matrix--Matrix product} looks like:
+\begin{equation*}
+    \begin{bmatrix}\bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet \end{bmatrix}
+    \begin{bmatrix}\bullet & \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet & \bullet \end{bmatrix}
+    =
+    \begin{bmatrix}\bullet & \bullet & \bullet & \bullet  \\
+                    \bullet & \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet & \bullet \\
+                    \bullet & \bullet & \bullet & \bullet \end{bmatrix}
+\end{equation*}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix--Matrix Product Summary}
+
+
+\textbf{Compatibility Requirement}
+\begin{equation*}
+    \begin{array}{cccc}
+                A       &        B        & = & C \\[3pt]
+        [\matdim{m}{r}] & [\matdim{r}{n}] & = & [\matdim{m}{n}]
+    \end{array}
+\end{equation*}
+Inner dimensions must agree
+
+
+Also, in general
+\begin{equation*}
+    AB \neq BA
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Mathematical Properties of Vectors and Matrices}
+
+
+\begin{itemize}
+    \item   Linear Independence
+    \item   Vector Spaces
+    \item   Subspaces associated with matrices
+    \item   Matrix Rank
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Linear Independence}
+
+Two vectors lying along the same line are not independent
+\begin{equation*}
+    u = \begin{bmatrix}1 \\ 1 \\ 1 \end{bmatrix}
+    \qquad
+    \text{and}
+    \qquad
+    v = -2u = \begin{bmatrix}-2 \\ -2 \\ -2 \end{bmatrix}
+\end{equation*}
+
+Any two independent vectors, for example,
+\begin{equation*}
+    v = \begin{bmatrix}-2 \\ -2 \\ -2 \end{bmatrix}
+    \qquad
+    \text{and}
+    \qquad
+    w = \begin{bmatrix}0 \\ 0 \\ 1 \end{bmatrix}
+\end{equation*}
+define a plane. Any other vector in this plane of $v$ and $w$ can be
+represented by
+\begin{equation*}
+    x = \alpha v + \beta w
+\end{equation*}
+$x$ is \textbf{linearly dependent} on $v$ and $w$ because it
+can be formed by a linear combination of $v$ and $w$.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Linear Independence}
+
+A set of vectors is linearly independent if it is impossible to use a
+linear combination of vectors in the set to create another vector in the set.
+
+Linear independence is easy to see for vectors that are orthogonal,
+for example,
+\begin{equation*}
+    \left[
+        \negthickspace\begin{array}{r}4 \\ 0 \\  0\\ 0\end{array}\negthickspace
+    \right],
+    \ \ \ \ \ \ \ \ \
+    \left[
+        \negthickspace\begin{array}{r}0 \\ -3 \\  0\\ 0\end{array}\negthickspace
+    \right],
+    \ \ \ \ \ \ \ \ \
+    \left[
+        \negthickspace\begin{array}{r}0 \\ 0 \\  1\\ 0\end{array}\negthickspace
+    \right]
+\end{equation*}
+are linearly independent.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Linear Independence}
+
+Consider two linearly independent vectors, $u$ and $v$.
+
+If a third vector, $w$, \emph{cannot} be expressed as a linear
+combination of $u$ and $v$, then the set $\{u,v,w\}$ is
+linearly independent.
+
+In other words, if $\{u,v,w\}$ is linearly independent then
+\begin{equation*}
+    \alpha u + \beta v = \delta w
+\end{equation*}
+can be true \emph{only if} $\alpha = \beta = \delta = 0$.
+
+
+More generally, if the only solution to
+\begin{equation}    \label{eq:linDep}
+    \alpha_1 v_{(1)} + \alpha_2 v_{(2)} + \cdots + \alpha_n v_{(n)} = 0
+\end{equation}
+is $\alpha_1 = \alpha_2 = \ldots = \alpha_n = 0$, then the set
+$\{v_{(1)},v_{(2)},\ldots,v_{(n)}\}$
+is \textbf{linearly independent}.
+Conversely, if equation~\eqref{eq:linDep} is satisfied by at least
+one nonzero $\alpha_i$, then the set of vectors is \textbf{linearly dependent}.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Linear Independence}
+
+Let the set of vectors $\{v_{(1)},v_{(2)},\ldots,v_{(n)}\}$
+be organized as the columns of a matrix.  Then the condition
+of linear independence is
+\begin{equation}      \label{eq:linDepMat}
+    \begin{bmatrix}\left. \begin{matrix} \\ \\ v_{(1)}  \\ \\ \\ \end{matrix}\right|
+                   \left. \begin{matrix} \\ \\ v_{(2)}  \\ \\ \\ \end{matrix}\right|
+                   \left. \begin{matrix} \\ \\ {\cdots\ } \\ \\ \\ \end{matrix}\right|
+                          \begin{matrix} \\ \\ v_{(n)}  \\ \\ \\ \end{matrix}\negthickspace
+    \end{bmatrix}
+    \begin{bmatrix} \alpha_1 \\ \alpha_2 \\ \vdots \\ \alpha_n \end{bmatrix}
+    =
+    \begin{bmatrix}  0 \\  0 \\ \vdots \\ 0 \end{bmatrix}
+\end{equation}
+
+\begin{center}
+    \begin{minipage}{4.5in}
+        \bfseries
+        The columns of the \matdim{m}{n} matrix, $A$, are linearly
+        independent if and only if $x=(0,0,\ldots,0)^T$ is the only $n$
+        element column vector that satisfies $Ax=0$.
+    \end{minipage}
+\end{center}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Vector Spaces}
+
+\begin{itemize}
+    \item   Spaces and Subspaces
+    \item   Basis of a Subspace
+    \item   Subspaces associated with Matrices
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Spaces and Subspaces}
+
+Group vectors according to number of elements they have.
+Vectors from these different groups cannot be mixed.
+
+\begin{center}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{align*}
+        \mathbf{R}^1 & =  \text{Space of all vectors with one element.}\\
+                     &    \text{These vectors define the points along a line.}\\
+        \mathbf{R}^2 & =  \text{Space of all vectors with two elements.}\\
+                     &    \text{These vectors define the points in a plane.} \\
+        \mathbf{R}^n & =  \text{Space of all vectors with $n$ elements.}\\
+                     &    \text{These vectors define the points in an}\\
+                     &    \text{$n$-dimensional space (hyperplane).}\\
+    \end{align*}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Subspaces}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+The three vectors
+\begin{equation*}
+    u = \left[\negthickspace\begin{array}{r}  1 \\  2 \\  0 \end{array}\negthickspace\right],
+    \quad
+    v = \left[\negthickspace\begin{array}{r} -2 \\  1 \\ 3 \end{array}\negthickspace\right],
+    \quad
+    w = \left[\negthickspace\begin{array}{r}  3 \\  1 \\ -3 \end{array}\negthickspace\right],
+\end{equation*}
+lie in the same plane.  The vectors have three elements each, so they
+belong to $\mathbf{R}^3$, but they \textbf{span} a \textbf{subspace} of
+$\mathbf{R}^3$.
+\end{column}
+\begin{column}{0.45\textwidth}
+    \pgfimage[height=5cm]{./figs/span2in3}
+\end{column}
+\end{columns}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Basis and Dimension of a Subspace}
+
+\begin{itemize}
+    \item   A \textbf{basis} for a subspace is a set of \textbf{linearly independent}
+            vectors that \textbf{span} the subspace.
+
+    \item   Since a basis set must be linearly independent, it also must have the
+            smallest number of vectors necessary to span the space.  (Each vector makes a
+            unique contribution to spanning some other direction in the space.)
+
+    \item   The number of vectors in a basis set is equal to the \textbf{dimension}
+            of the \textbf{subspace} that these vectors span.
+
+    \item   Mutually orthogonal vectors (an orthogonal set) form convenient basis
+            sets, but basis sets need not be orthogonal.
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Subspaces Associated with Matrices}
+
+The matrix--vector product
+\begin{equation*}
+    y = Ax
+\end{equation*}
+creates $y$ from a linear combination of the columns of $A$
+
+The column vectors of $A$ form a basis for the \textbf{column space}
+or \textbf{range} of $A$.
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix Rank}
+
+\begin{itemize}
+  \item The \textbf{rank} of a matrix, $A$, is the number of linearly independent
+columns in $A$.
+
+  \item \rank{A} is the dimension of the column space of $A$.
+
+  \item Numerical computation of \rank{A} is tricky due to roundoff.
+\end{itemize}
+
+Consider
+\begin{equation*}
+    u = \begin{bmatrix} 1 \\ 0 \\ 
+    \only<1>{0}
+    \only<2>{0.00001}
+    \only<3>{\epsm}
+    \end{bmatrix}
+    \ \ \ \ \ \ \ \
+    v = \begin{bmatrix} 0 \\ 1 \\ 0   \end{bmatrix}
+    \ \ \ \ \ \ \ \
+    w = \begin{bmatrix} 1 \\ 1 \\ 0 \end{bmatrix}
+\end{equation*}
+
+\vspace{1ex}
+Do these vectors span $\mathbf{R}^3$?
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Matrix Rank (2)}
+
+We can use Matlab's built-in \cmd{rank} function
+for exploratory calculations on (relatively) small matrices
+\begin{lstlisting}[language=matlab]
+>> A = [1 0 0; 0 1 0; 0 0 1e-5]    % A(3,3) is small
+A =
+    1.0000         0         0
+         0    1.0000         0
+         0         0    0.0000
+
+>> rank(A)
+ans =
+     3
+\end{lstlisting}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Matrix Rank (2)}
+
+Repeat numerical calculation of rank with smaller diagonal entry
+\begin{lstlisting}[language=matlab]
+>> A(3,3) = eps/2    % A(3,3) is even smaller
+A =
+    1.0000         0         0
+         0    1.0000         0
+         0         0    0.0000
+
+>> rank(A)
+ans =
+     2
+\end{lstlisting}
+Even though \texttt{A(3,3)} is not identically zero, it is
+small enough that the matrix is \emph{numerically} rank-deficient
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Special Matrices}
+
+\begin{itemize}
+    \item   Diagonal Matrices
+    \item   Tridiagonal Matrices
+    \item   The Identity Matrix
+    \item   The Matrix Inverse
+    \item   Symmetric Matrices
+    \item   Positive Definite Matrices
+    \item   Orthogonal Matrices
+    \item   Permutation Matrices
+\end{itemize}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Diagonal Matrices}
+
+Diagonal matrices have non-zero elements only on
+the main diagonal.
+\begin{equation*}
+    C = \text{diag}\left( c_1, c_2, \ldots, c_n \right)
+      = \begin{bmatrix}  c_1   &  0  & \cdots & 0 \\
+                          0    & c_2 &        & 0 \\
+                        \vdots &     & \ddots & \vdots \\
+                          0    &  0  & \cdots & c_n
+        \end{bmatrix}
+\end{equation*}
+
+The \textbf{diag} function is used to either create a
+diagonal matrix from a vector, or and extract the diagonal entries of a
+matrix.
+\begin{lstlisting}[language=matlab]
+    >> x = [1 -5  2  6];
+    >> A = diag(x)
+    A =
+         1     0     0     0
+         0    -5     0     0
+         0     0     2     0
+         0     0     0     6
+\end{lstlisting}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Diagonal Matrices}
+
+The \textbf{diag} function can also be used to create a
+matrix with elements only on a specified \emph{super}-diagonal
+or \emph{sub}-diagonal.  Doing so requires using the
+two-parameter form of \textbf{diag}:
+\begin{lstlisting}[language=matlab]
+>> diag([1 2 3],1)
+ans =
+     0     1     0     0
+     0     0     2     0
+     0     0     0     3
+     0     0     0     0
+>> diag([4 5 6],-1)
+ans =
+     0     0     0     0
+     4     0     0     0
+     0     5     0     0
+     0     0     6     0
+
+\end{lstlisting}
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Identity Matrices}
+
+An identity matrix is a square matrix with ones on the main diagonal.
+\begin{equation*}
+    I = \begin{bmatrix}1 & 0 & 0\\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}
+\end{equation*}
+
+An identity matrix is special because
+\begin{equation*}
+    AI = A
+    \ \ \ \ \ \text{and}\ \ \ \ \
+    IA = A
+\end{equation*}
+for \emph{any} compatible matrix $A$.  This is like multiplying by
+one in scalar arithmetic.
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Identity Matrices}
+
+Identity matrices can be created with the built-in \textbf{eye} function.
+\begin{lstlisting}[language=matlab]
+>> I = eye(4)
+I =
+     1     0     0     0
+     0     1     0     0
+     0     0     1     0
+     0     0     0     1
+\end{lstlisting}
+
+Sometimes $I_n$ is used to designate an identity matrix with $n$ rows
+and $n$ columns.  For example,
+\begin{equation*}
+    I_4 = \begin{bmatrix}  1 & 0 & 0 & 0 \\
+                           0 & 1 & 0 & 0 \\
+                           0 & 0 & 1 & 0 \\
+                           0 & 0 & 0 & 1 \end{bmatrix}
+\end{equation*}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Identity Matrices}
+
+A non-square, \emph{identity-like} matrix can be created with the
+two-parameter form of the \texttt{eye} function:
+\begin{lstlisting}[language=matlab]
+>> J = eye(3,5)
+J =
+     1     0     0     0     0
+     0     1     0     0     0
+     0     0     1     0     0
+
+>> K = eye(4,2)
+K =
+     1     0
+     0     1
+     0     0
+     0     0
+\end{lstlisting}
+\texttt{J} and \texttt{K} are \emph{not} identity matrices!
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Functions to Create Special Matrices}
+
+\begin{center}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{ll}
+        Matrix      &  Matlab\ function  \\  \hline
+        Diagonal    &  \texttt{diag}     \\
+        Identity    & \texttt{eye}     \\
+        Inverse     & \texttt{inv}
+    \end{tabular}
+\end{center}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Symmetric Matrices}
+
+If $A=A^T$, then $A$ is called a \textit{symmetric} matrix.
+
+\begin{equation*}
+    \begin{bmatrix}
+        \phantom{-}5 & -2           & -1 \\
+        -2           & \phantom{-}6 & -1 \\
+        -1           & -1           & \phantom{-}3
+    \end{bmatrix}
+\end{equation*}
+
+\begin{block}{Note}
+    $B = A^T A$ is symmetric for any (real) matrix $A$.
+\end{block}
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Tridiagonal Matrices}
+
+\begin{equation*}
+\left[\begin{array}{@{}rrrr@{}}
+2 & -1 & 0 & 0\\
+-1 & 2 & -1 & 0\\
+0 & -1 & 2 & -1\\
+0 & 0 & -1 & 2
+\end{array}\right].
+\end{equation*}
+
+The diagonal elements need not be equal.  The general
+form of a tridiagonal matrix is
+\begin{equation*}
+    A = \begin{bmatrix}
+    a_1 & b_1 & & & & &\\
+    c_2 & a_2 & b_2& & & &\\
+    & c_3 & a_3 & b_3& & &\\
+    & & \ddots & \ddots & \ddots& &\\
+    \\
+    & & & & c_{n-1}& a_{n-1}& b_{n-1}\\
+    & & & & & c_n & a_n
+    \end{bmatrix}
+\end{equation*}
+
+
+
+
+% ----------------------
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

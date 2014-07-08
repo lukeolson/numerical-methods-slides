@@ -1,0 +1,538 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 20}
+\subtitle{Iterative Methods}
+\date{November 5, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Summary: Complexity of Linear Solves}
+\begin{itemize}
+\item $Ax=b$
+\item diagonal system: $\mO(n)$
+\item upper or lower triangular system: $\mO(n^{2})$
+\item full system with GE: $\mO(n^{3})$
+\item scaled partial pivoting adds $\mO(n^{2})$
+\item full system with LU: $\mO(n^{3})$
+\item LU back solve: $\mO(n^{2})$
+\item $m$ different right-hand sides: $\mO(m n^{3})$ or $\mO(n^3 + m n^{2})$
+\item tridiagonal system: $\mO(n)$
+\item $m$-band system: $\mO(m^{2}n)$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Summary: Complexity}
+\begin{center}
+\pgfimage[width=10cm]{./figs/solvers}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Approximate solutions}
+So far, we are seeking ``exact'' solutions $x^{*}$ to
+\begin{equation*}
+Ax=b
+\end{equation*}
+What if we only need an approximations $\hat{x}$ to $x^{*}$?
+\bigskip
+
+We would like some $\hat{x}$ so that $\|\hat{x} - x^{*}\| \leq \epsilon$, where $\epsilon$ is some tolerance.
+\bigskip
+
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{The Residual}
+We can't actually evaluate
+\begin{equation*}
+e = x^{*} - \hat{x}
+\end{equation*}
+But...
+\bigskip
+
+For $x=x^{*}$
+\begin{equation*}
+b-Ax \equiv 0
+\end{equation*}
+For $x=\hat{x}$
+\begin{equation*}
+b-Ax \nequiv 0
+\end{equation*}
+
+We call $\hat{r} = b-A\hat{x}$ the \emph{residual}.  It is way to measure the error.  In fact
+\begin{align*}
+\hat{r} &= b - A\hat{x}\\
+&= Ax^{*} - A\hat{x}\\
+&=A\hat{e}
+\end{align*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{How big is the residual?}
+For a given approximation, $\hat{x}$ to $x$, how ``big'' is the residual $\hat{r} = b-A\hat{x}$?
+\begin{itemize}
+	\item $\|r\|$ gives a magnitude
+	\item $\|r\|_{1} = \sum_{j=1}^{n} |r_{i}|$
+	\item $\|r\|_{2} = \left( \sum_{j=1}^{n} r_{i}^{2} \right)^{1/2}$
+	\item $\|r\|_{\infty} = \max_{1\leq j \leq n} |r_{i}|$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Approximating $x$...}
+Suppose we made a wild guess to the solution $x$ of $Ax=b$:
+\begin{equation*}
+	x^{(0)} \approx x
+\end{equation*}
+How do I improve $x^{(0)}$?
+\bigskip
+
+Ideally:
+\begin{equation*}
+	x^{(1)} = x^{(0)} + e^{(0)}
+\end{equation*}
+but to obtain $e^{(0)}$, we must know $x$.  Not a viable method.
+\bigskip
+
+Ideally (another way):
+\begin{align*}
+	x^{(1)} &= x^{(0)} + e^{(0)}\\
+		     &= x^{(0)} + (x^{*} - x^{(0)})\\
+		     &= x^{(0)} + (A^{-1}b - x^{(0)})\\
+		     &= x^{(0)} + A^{-1}(b - A x^{(0)})\\
+		     &= x^{(0)} + A^{-1} r^{(0)}
+\end{align*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{An iteration}
+Again, the method
+\begin{equation*}
+	x^{(1)} = x^{(0)} + A^{-1} r^{(0)}
+\end{equation*}
+is nonsense since $A^{-1}$ is needed.
+\bigskip
+
+What if we approximate $A^{-1}$?  Suppose $Q^{-1} \approx A^{-1}$ and is cheap to construct, then
+\begin{equation*}
+	x^{(1)} = x^{(0)} + Q^{-1} r^{(0)}
+\end{equation*}
+is a good step.
+\bigskip
+
+continuing...
+\begin{equation*}
+	x^{(k)} = x^{(k-1)} + Q^{-1} r^{(k-1)}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{What kind of $Q^{-1}$ do I need?}
+Rewrite:
+\begin{align*}
+	x^{(k)} &= x^{(k-1)} + Q^{-1} (b-Ax^{(k-1)})\\
+\end{align*}
+This becomes
+\begin{align*}
+	Q x^{(k)} &= Q x^{(k-1)} + (b-Ax^{(k-1)})\\
+	                &= (Q-A) x^{(k-1)} + b\\
+\end{align*}
+This is the form in the text (page 322 NMC6).
+\bigskip
+
+Or
+\begin{equation*}
+x^{(k)} = Q^{-1}(Q-A) x^{(k-1)} + Q^{-1}b
+\end{equation*}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Two Popular Choices}
+\begin{example}
+Jacobi iteration approximates $A$ with $Q=diag(A)$.
+\bigskip
+
+\begin{lstlisting}[mathescape]
+$x = x^{(0)}$
+
+Q = D
+
+for $k=1$ to $k_{max}$
+  $r = b - Ax$
+  if $\|r=b-Ax\| \leq tol$, stop
+
+  $x= x + Q^{-1} r$
+end
+\end{lstlisting}
+\end{example}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Two Popular Choices}
+\begin{example}
+Gauss-Seidel iteration approximates $A$ with $Q=lowertri(A)$.
+\bigskip
+
+\begin{lstlisting}[mathescape]
+$x = x^{(0)}$
+
+Q = D - L
+
+for $k=1$ to $k_{max}$
+  $r = b - Ax$
+  if $\|r=b-Ax\| \leq tol$, stop
+
+  $x= x + Q^{-1} r$
+end
+\end{lstlisting}
+\end{example}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Why $D$ and $D-L$?}
+Look again at the iteration
+\begin{equation*}
+	x^{(k)} = x^{(k-1)} + Q^{-1}r^{(k-1)}
+\end{equation*}
+Looking at the error:
+\begin{equation*}
+	x-x^{(k)} = x-x^{(k-1)} - Q^{-1}r^{(k-1)}
+\end{equation*}
+Gives
+\begin{equation*}
+e^{(k)} = e^{(k-1)} - Q^{-1}Ae^{(k-1)}
+\end{equation*}
+or
+\begin{equation*}
+e^{(k)} = (I -  Q^{-1}A) e^{(k-1)}
+\end{equation*}
+or
+\begin{equation*}
+e^{(k)} = (I -  Q^{-1}A)^{k} e^{(0)}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Why $D$ and $D-L$?}
+We want
+\begin{equation*}
+e^{(k)} = (I -  Q^{-1}A)^{k} e^{(0)}
+\end{equation*}
+to converge.
+\bigskip
+
+When does $a_{k} = c^{k}$ converge?   .....when $|c|<1$
+\bigskip
+
+Likewise, our iteration converges
+\begin{align*}
+\|e^{(k)}\| & = \|(I -  Q^{-1}A)^{k} e^{(0)}\|\\
+&\leq \|I-Q^{-1}A\|^{k}\|e^{(0)}\|
+\end{align*}
+when $\|I-Q^{-1}A\| < 1$.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matrix Norms}
+What is $\|I - Q^{-1}A\|$ ?
+\begin{itemize}
+	\item $\|A\|_{1} = \max_{1\leq j \leq n} \sum_{i=1}^{n} |a_{ij}|$
+	\item $\|A\|_{2} = \sqrt{\rho(A^{T}A)}$
+	\item $\rho(A) = \max_{1\leq j \leq n} |\lambda_{i}|$
+	\item $\|A\|_{2} = \rho(A)$ for symmetric $A$
+	\item $\|A\|_{\infty} = \max_{1\leq i \leq n} \sum_{j=1}^{n} |a_{ij}|$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Again, why do Jacobi and Gauss-Seidel work?}
+\begin{block}{Jacobi, Gauss-Seidel (sufficient) Convergence Theorem}
+	If $A$ is diagonally dominant, then the Jacobi and Gauss-Seidel methods converge for any initial guess $x^{(0)}$.
+\end{block}
+\bigskip
+
+\begin{block}{Definition: Diagonal Dominance}
+A matrix is \emph{diagonally dominant} if
+\begin{equation*}
+	|a_{ii}| > \sum_{j=1,j\ne i}^{n} |a_{ij}|
+\end{equation*}
+for all $i$.
+\end{block}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Smart Jacobi Algorithm}
+The algorithm above uses the matrix representation:
+\begin{equation*}
+x^{(k)} = D^{-1}(L+U) x^{(k-1)} + D^{-1}b
+\end{equation*}
+The diagonaly is decoupled from the $L+U$, so we have an update in the form of
+\begin{equation*}
+x_{i}^{(k)} = -\sum_{j=1,j\ne i}^{n} \left(\frac{a_{ij}}{a_{ii}}\right) x_{j}^{(k-1)} + \frac{b_{i}}{a_{ii}}
+\end{equation*} 
+So each sweep (from $k-1$ to $k$) uses $\mO(n)$ operations per vector element.
+
+If, for each row $i$, $a_{ij} = 0$ for all but $m$ values of $j$, each sweep 
+uses $\mO(mn)$ operations.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Smart Gauss-Seidel Algorithm}
+The algorithm above uses the matrix representation:
+\begin{equation*}
+x^{(k)} = (D-L)^{-1}U x^{(k-1)} + (D-L)^{-1}b
+\end{equation*}
+Component-wise:
+\begin{equation*}
+x_{i}^{(k)} = -\sum_{j=1,j < i}^{n} \left(\frac{a_{ij}}{a_{ii}}\right) x_{j}^{(k)} -\sum_{j=1,j > i}^{n} \left(\frac{a_{ij}}{a_{ii}}\right) x_{j}^{(k-1)} + \frac{b_{i}}{a_{ii}}
+\end{equation*} 
+So again each sweep (from $k-1$ to $k$) uses $\mO(n)$ operations per vector element.
+
+If, for each row $i$, $a_{ij} = 0$ for all but $m$ values of $j$, each sweep 
+uses $\mO(mn)$ operations.
+\bigskip
+
+The difference is that in the Jacobi method, updates are saved (and not used) in a new vector.  With Gauss-Seidel, an update to an element $x_{i}^{(k)}$ is used immediately.
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Intuitively...}
+Both Jacobi and Gauss-Seidel can be viewed as a form of averaging.
+
+\begin{example}
+Consider
+\begin{equation*}
+A = \begin{bmatrix}
+ 2 & -1 &    &    &    &    &    \\
+ -1& 2 & -1 &    &   &    &     \\
+     & -1& 2 & -1 &  &     &     \\
+     &     &    &\ddots& & &     \\
+     &     &    &           & -1 & 2 & 1\\
+     &    &     &           &      & -1 & 2\\
+\end{bmatrix}
+\qquad
+b=
+\begin{bmatrix}
+0\\
+0\\
+0\\
+0\\
+0\\
+0\\
+\end{bmatrix}
+\qquad
+x^{(0)}=rand(n,1)
+\end{equation*}
+\end{example}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{Conjugate Gradients}
+\begin{itemize}
+\item Suppose that $A$ is $n \times n$ symmetric and positive definite. 
+
+\item Since $A$ is positive definite, $x^T A x > 0$ for all $x \in
+\mathbb{R}^n$. (Why?)
+
+\item Define a quadratic function
+\[
+\phi(x) = \frac{1}{2} x^T A x - x^T b
+\]
+
+\item It turns out that $- \nabla \phi = b-Ax = r$, or $\phi(x)$ has a minimum for $x$ such that $Ax=b$.
+
+\item Optimization methods look in a ``search direction'' and pick the best
+step:
+\[
+x_{k+1} = x_k + \alpha s_k
+\]
+Choose $\alpha$ so that $\phi(x_k + \alpha s_k)$ is minimized in the direction
+of $s_k$.
+
+\item Find $\alpha$ so that $\phi$ is minimized:
+\[
+0 = \frac{d}{d\alpha}\phi(x_{k+1}) 
+  = \nabla \phi(x_{k+1})^T \frac{d}{d\alpha}x_{k+1} 
+ = -r_{k+1}^T \frac{d}{d\alpha}(x_k + \alpha s_k) 
+ = -r_k^T s_k.
+\]
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Conjugate Gradients}
+\begin{itemize}
+\item Find $\alpha$ so that $\phi$ is minimized:
+\[
+0 = \frac{d}{d\alpha}\phi(x_{k+1}) 
+  = \nabla \phi(x_{k+1})^T \frac{d}{d\alpha}x_{k+1} 
+ = -r_{k+1}^T \frac{d}{d\alpha}(x_k + \alpha s_k) 
+ = -r_{k+1}^T s_k.
+\]
+\item We also know
+\[
+r_{k+1} = b-Ax_{k+1} = b-A(x_k + \alpha s_k) = r_k - \alpha A s_k
+\]
+\item So, the optimal search parameter is
+\[
+\alpha = -\frac{r_k^T s_k}{s_k^T A s_k}
+\]
+
+\item This is CG: take a step in a search direction
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Congugate Gradients}
+\begin{itemize}
+\item Neat trick:  We can compute the $r$ without explicitly forming $b-Ax$:
+\[
+   r_{k+1} = b - Ax_{k+1} = b - A(x_k +\alpha s_k) = b - Ax_k - \alpha As_k =
+r_k - \alpha A s_k
+\]
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Congugate Gradients}
+\begin{itemize}
+\item How should we pick $s_k$?
+\item Note that $- \nabla \phi = b-Ax = r$, so $r$ is the gradient of $\phi$ 
+(for \emph{any} $x$), and this is a good direction.  
+\item Thus, pick $s_0$ = $r=b-Ax_0$.
+\item What is $s_1$?  This should be in the direction of $r_1$, but 
+\emph{conjugate} to $s_0$: $s_1^T A s_0 = 0$.  
+\item (Two vectors $u$ and $v$ are \emph{$A$-conjugate} is $u^TAv = 0$)
+\item So, if we let $s_1 = r_0 + \beta s_0$, we can require 
+\[
+    0 = s_1^TAs_0 = (r_1^T + \beta s_0T)As_0 = r_1^TAs_0 + \beta s_0^T A s_0
+\]
+or 
+\[
+    \beta = - r_1^TAs_0 / s_0^TAs_0.
+\]
+\item Holds for $s_{k+1}$ in terms of $r_k + \beta_k s_k$
+\item Further similification (which is \emph{not} simple to carry out) 
+yields a simple method that requires only one matrix-vector product per step:
+\end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+\frametitle{Conjugate Gradients}
+\begin{lstlisting}[mathescape]
+$x_0 = $ initial guess
+$r_0 = b-Ax_0$
+$s_0 = r_0$
+for $k = 0, 1, 2, \dots$
+  $\alpha_k = \frac{r_k^T r_k}{s_k^T A s_k}$
+  $x_{k+1} = x_k + \alpha_k s_k$
+  $r_{k+1} = r_k - \alpha_k A s_k$
+  $\beta_{k+1} = r_{k+1}^T r_{k+1} / r_k^T r_k$
+  $s_{k+1} = r_{k+1} + \beta_{k+1} s_k$
+\end{lstlisting}
+\end{frame}
+\bigskip
+
+Homework:  investigate speed/accuracy of CG versus Jacobi/GS
+\end{document}

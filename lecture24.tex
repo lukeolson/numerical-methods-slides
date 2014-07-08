@@ -1,0 +1,433 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%pdflatex -jobname lecture15.print lecture15
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{dove}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 24}
+\subtitle{Monte Carlo}
+\date{November 19, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Why}
+\begin{itemize}
+  \item Central to the PageRank (and many many other applications in
+fincance, science, informatics, etc) is that we randomly process
+something
+  \item what we want to know is ``on average'' what is likely to happen
+  \item what would happen if we have an infinite number of samples?
+  \item let's take a look at integral (a discrete limit in a sense)
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Integration}
+\framesubtitle{some slides from f. pellanccini}
+  \begin{itemize}
+  \item integral of a function over a domain
+\begin{equation*} 
+\int_{x\in D} f(x) \,dA_x
+\end{equation*}
+  \item the size of a domain
+\begin{equation*} 
+A_D = \int_{x\in D} dA_x
+\end{equation*}
+  \item average of a function over some domain
+\begin{equation*} 
+\frac{\int_{x\in D} f(x) dA_x}{A_D}
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{integral example}
+The average ``daily'' snowfall in Champaign last year
+  \begin{itemize}
+    \item domain: year (1d time interval)
+    \item integration variable: day
+    \item function: snowfall depending on day
+  \end{itemize}
+\begin{equation*}
+  average = \frac{\int_{day\in year} s(day)d_{day}}{length of year}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{integral example}
+The average snowfall in Illinois
+  \begin{itemize}
+    \item domain: Illinois (2d surface)
+    \item integration variable: $(x,y)$ location
+    \item function: snowfall depending on location
+  \end{itemize}
+\begin{equation*}
+  average = \frac{\int_{location\in Illinois} s(location)d_{location}}{area of illinois}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{integral example}
+The average snowfall in Illinois today
+  \begin{itemize}
+    \item domain: Illinois $\times$ year (3d space-time)
+    \item integration variable: location and day
+    \item function: snowfall depending on location and day
+  \end{itemize}
+\begin{equation*}
+  average = \frac{\int_{day\in year}\int_{location\in Illinois}s(location,day)d_{location,day}}{area of illinois \cdot length of year}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{discrete random variables}
+\begin{itemize}
+  \item random variable $x$
+  \item values: $x_0, x_1, \dots, x_n$
+  \item probabilities $p_0, p_1,\dots,p_n$ with $\sum_{i=0}^{n}p_i = 1$
+\end{itemize}
+\begin{block}{throwing a die (1-based index)}
+\begin{itemize}
+  \item values: $x_1=1, x_2=2, \dots, x_6=6$
+  \item probabilities $p_i = 1/6$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{expected value and variance}
+\begin{itemize}
+  \item expected value: average value of the variable
+\begin{equation*}
+  E[x] = \sum_{j=1}^{n}x_j p_j
+\end{equation*}
+  \item variance: variation from the average
+\begin{equation*}
+  \sigma^2[x] = E[(x-E[x])^2] = E[x^2] - E[x]^2
+\end{equation*}
+\end{itemize}
+\begin{block}{throwing a die}
+\begin{itemize}
+  \item expected value: $E[x] = (1+2+\dots+6)/6 = 3.5$
+  \item variance: $\sigma^2[x] = 2.916$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{estimated $E[x]$}
+\begin{itemize}
+  \item to estimate the expected value, choose a set of random values
+based on the probability and average the results
+\begin{equation*}
+  E[x] = \frac{1}{N} \sum_{j=1}^{N} x_i
+\end{equation*}
+  \item bigger $N$ gives better estimates
+\end{itemize}
+\begin{block}{throwing a die}
+\begin{itemize}
+  \item 3 rolls: $3,1,6 \rightarrow E[x] \approx (3+1+6)/3 = 3.33$
+  \item 9 rolls: $3,1,6,2,5,3,4,6,2 \rightarrow E[x] \approx (3+1+6+2+5+3+4+6+2)/9 = 3.51$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{law of large numbers}
+\begin{itemize}
+  \item by taking $N$ to $\infty$, the error between the estimate an the
+expected value is statistically zero.  That is, the estimate will
+converge to the correct value
+\begin{equation*} 
+  P\left(E[x] = lim_{N\rightarrow\infty} \frac{1}{N} \sum_{i=1}^{N} x_i\right) = 1
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{continuous random variable}
+\begin{itemize}
+  \item random variable: $x$
+  \item values: $x\in [a,b]$
+  \item probability: density function $\rho(x)$ with $\int_a^b
+\rho(x)\,dx = 1$
+  \item probability that the variable as value $x$: $\rho(x)$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{uniformly distributed random variable}
+\begin{itemize}
+  \item $\rho(x)$ is constant
+  \item $\int_a^b \rho(x)\,dx = 1$ means $\rho(x) = 1/(b-a)$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{continuous extensions}
+\begin{itemize}
+  \item expected value
+  \begin{align*}
+  E[x] & = \int_a^b x\rho(x)\,dx\\
+  E[g(x)] & = \int_a^b g(x)\rho(x)\,dx
+  \end{align*}
+  \item variance
+  \begin{align*}
+  \sigma^2[x] & = \int_a^b (x-E[x])^2\rho(x)\,dx\\
+  \sigma^2[g(x)] & = \int_a^b (g(x)-E[g(x)])^2 p(x)\,dx\\
+  \end{align*}
+  \item estimating the expected value
+  \begin{equation*}
+    E[g(x)] \approx \frac{1}{N} \sum_{i=1}^{N} g(x_i)
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{multidementional extensions}
+\begin{itemize}
+  \item difficult domains (complex geometries)
+  \item expected value
+  \begin{align*}
+  E[g(x)] & = \int_{x\in D} g(x)\rho(x)\,dA_x
+  \end{align*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{(deterministic) numerical integration}
+\begin{itemize}
+  \item  split domain into set of fixed segments
+  \item sum function values with size of segments (Riemann!)
+\end{itemize}
+\begin{center}
+  \pgfimage[height=4cm]{./figs/map2}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Algorithm}
+We have for a random sequence $x_1,\dots,x_n$
+\begin{equation*}
+  \int_0^1 f(x)\,dx \approx \frac{1}{n} \sum_{i=1}^{n} f(x_i)  
+\end{equation*}
+
+\begin{lstlisting}[mathescape]
+  n=100;
+  x=rand(n,1);
+  a=f(x);
+  s=sum(a)/n;
+\end{lstlisting}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$}
+Use the unit square $[0,1]^2$ with a quarter-circle
+\begin{align*}
+  f(x,y) & = 
+\begin{cases}
+1 & \quad (x,y)\in \, circle\\
+0 & else
+\end{cases}\\
+  A_{quarter-circle} &= \int_0^1\int_0^1 f(x,y)\,dxdy = \frac{pi}{4}
+\end{align*}
+\begin{center}
+  \pgfimage[height=4cm,width=4cm]{./figs/map4}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$}
+Estimate the area of the circle by randomly evaluating $f(x,y)$
+\begin{align*}
+  A_{quarter-circle} &\approx \frac{1}{N}\sum_{i=1}^{N}f(x_i,y_i)
+\end{align*}
+\begin{center}
+  \pgfimage[height=4cm,width=4cm]{./figs/map3}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$}
+By definition
+\begin{align*}
+  A_{quarter-circle} & = \pi/4
+\end{align*}
+so
+\begin{equation*}
+  \pi \approx \frac{4}{N} \sum_{i=1}^{N}f(x_i,y_i)
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{2d: example computing $\pi$, algorithm}
+\begin{lstlisting}[mathescape]
+  input $N$
+  call rand in $2d$
+  for $i$=1:$N$
+    $sum = sum + f(x_i,y_i)$
+  end
+  $sum = 4*sum/N$
+\end{lstlisting}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{2d: example computing $\pi$, algorithm}
+The expected value of the \emph{error} is $\mO\left(\frac{1}{\sqrt{N}}\right)$
+\begin{itemize}
+  \item convergence does not depend on dimension
+  \item deterministic integration is very hard in higher dimensions
+  \item deterministic integration is very hard for complicated domains
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{CLT: Central Limit Theorem}
+\begin{block}{}
+  The distribution of an average is close to being normal, even when the distribution from which the average is computed is not normal.
+\end{block}
+What?
+\begin{itemize}
+  \item Let $x_1,\dots,x_n$ be some independent random variables from any PDF
+  \item Consider the sum $S_n = x_1 + \dots + x_n$
+  \item The expected value is $n\mu$ and the standard deviation is
+$\sigma \sqrt{n}$
+  \item That is, $\frac{S_n - n\mu}{\sigma\sqrt{n}}$ approaches the
+normal distribution
+  \item What?  The sample mean has an error of $\sigma/\sqrt{n}$
+\end{itemize}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Now What?}
+\begin{itemize}
+  \item How does one minimize the noise in this random process?
+  \item pick better samples!
+  \item Use more samples where the impact is high: where $f$ is large
+  \begin{equation*}
+  I \approx \frac{1}{N} \sum_{i=1}^{N} \frac{f(x)}{p(x)}
+\end{equation*}
+  \item So pick a distribution similar to $f$
+  \begin{equation*}
+  p_{optimal} \propto f(x)
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{\texttt{monte\_pi.c} vs. \texttt{monte\_pi.m}}
+\begin{lstlisting}[caption=C]
+... estimate of pi is 3.14155
+\end{lstlisting}
+\begin{lstlisting}[caption=matlab]
+... estimate of pi is 3.141597
+\end{lstlisting}
+
+\begin{alertblock}{}
+Be careful with your random number generator.
+\end{alertblock}
+\end{frame}
+\end{document}

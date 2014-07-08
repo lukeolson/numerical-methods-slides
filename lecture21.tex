@@ -1,0 +1,788 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%pdflatex -jobname lecture15.print lecture15
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 21}
+\subtitle{Better Iterative Methods; Google and Markov Chains}
+\date{November 10, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Quadratic Form}
+\[
+f(x) = \frac{1}{2} x^T A x - b^T x + c
+\]
+is a \emph{quadratic} form.  Example:
+\[
+A= \begin{bmatrix}3 & 2\\ 2& 6\end{bmatrix}\quad
+b= \begin{bmatrix}2\\-8\end{bmatrix} \quad
+c = 0
+\]
+\begin{lstlisting}[numbers=none]
+syms x y
+X = [x;y];
+A = [3 2; 2 6]; b= [2; -8];
+f = (1/2) * transpose(X) * A * X - transpose(b) * X;
+
+ezsurfc(f)
+hold on;
+ezplot('(1/2) * (2 - 3*x)');
+ezplot('(1/6) * (-8 - 2*x)');
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Quadratic Form}
+Gradient: $\nabla f(x)$ points uphill
+
+\begin{lstlisting}[numbers=none]
+df = [diff(f,x); diff(f,y)]
+[xx,yy] = meshgrid(linspace(-6,6,20));
+U=subs(df(1),{x,y},{xx,yy});
+V=subs(df(2),{x,y},{xx,yy});
+quiver(xx,yy,U,V);
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}
+\frametitle{Quadratic Form}
+Lets look at the $i^{th}$ component of $\nabla f$:
+\begin{align*}
+f(x+h e_i) &= \frac{1}{2}(x+h e_i)^TA(x+h e_i) - b^T(x+h e_i) + c\\
+ &\approx\frac{1}{2}(x^TAx + h e_i^TAx + x^TAh e_i) - b^T(x+h e_i) + c
+\end{align*}
+so 
+\begin{align*}
+{f(x+h e_i) - f(x)\over h } &= {\frac{1}{2}(h e_i^T Ax + x^TAh e_i) - h e_i^T b \over h }\\
+&= \textrm{i$^{th}$ component of }\frac{1}{2}(Ax + A^Tx) - b
+\end{align*}
+So
+\[
+\nabla f = \frac{1}{2} A^T x + \frac{1}{2} A x - b
+\]
+So if $A$ is symmetric, then $Ax=b$ at the minimum of $f$.
+\bigskip
+\end{frame}
+\begin{frame}
+So
+\[
+\nabla f = \frac{1}{2} A^T x + \frac{1}{2} A x - b
+\]
+So if $A$ is symmetric, then $Ax=b$ at the minimum of $f$.
+\bigskip
+Now, if
+
+$A$ is positive definite, $f$ is concave up.
+
+$A$ is negative definite, $f$ is concave down.
+
+$A$ is positive semi-definite, $f$ is concave up (with a line as the minimum).
+
+$A$ is indefinite, $f$ has a saddle. (Think $x_1^2 - x_2^2$)
+\end{frame}
+
+\begin{frame}
+\frametitle{Conjugate Gradients}
+\begin{itemize}
+\item Suppose that $A$ is $n \times n$ symmetric and positive definite. 
+
+\item Since $A$ is positive definite, $x^T A x > 0$ for all $x \in
+\mathbb{R}^n$.
+
+\item Define a quadratic function
+\[
+f(x) = \frac{1}{2} x^T A x - x^T b
+\]
+
+\item It turns out that $- \nabla f = b-Ax = r$
+
+\item Optimization methods look in a ``search direction'' and pick the best
+step:
+\[
+x_{k+1} = x_k + \alpha s_k
+\]
+Choose $\alpha$ so that $f(x_k + \alpha s_k)$ is minimized in the direction
+of $s_k$.
+
+\item Find $\alpha$ so that $f$ is minimized:
+\[
+0 = \frac{d}{d\alpha}f(x_{k+1}) 
+  = \nabla f(x_{k+1})^T \frac{d}{d\alpha}x_{k+1} 
+ = -r_{k+1}^T \frac{d}{d\alpha}(x_k + \alpha s_k) 
+ = -r_{k+1}^T s_k.
+\]
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Steepest Descent}
+\begin{itemize}
+\item Find $\alpha$ so that $f$ is minimized in the direction of $\nabla f = r$:
+\[
+0 = \frac{d}{d\alpha}f(x_{k+1}) 
+  = \nabla f(x_{k+1})^T \frac{d}{d\alpha}x_{k+1} 
+ = -r_{k+1}^T \frac{d}{d\alpha}(x_k + \alpha r_k) 
+ = -r_{k+1}^T r_k.
+\]
+\item Pick $\alpha$ so that $\nabla f(x_{k+1})$ and $r_k$ are orthogonal.
+\item Since $\nabla f(x_{k+1}) = -r_{k+1}$ we want
+\begin{align*}
+r_{k+1}^T r_k & = 0\\
+(b - A(x_k + \alpha r_k))^T r_k &= 0\\
+(b-A x_k)^T r_k - \alpha (Ar_k)^T r_k & = 0\\
+r_k^T r_k &= \alpha r_k^T A r_k
+\end{align*}
+\item So, the optimal search parameter is
+\[
+  \alpha = -\frac{r_k^T r_k}{r_k^T A r_k}
+\]
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+So far, we've \emph{motivated} a method.  We haven't been careful about the 
+step direction $s_k$ yet.  
+\begin{itemize}
+\item<1-> Notice: convergence is staggered
+\item<2-> Better: step toward a principle axis
+\item<3-> Notice: axis defined by eigenvectors of $A$
+\item<4-> Compromise: find a step direction that is $A$-orthogonal to the previous
+\item<5-> Notice: take a search closest to $r$ that is conjugate.
+\item<6-> Result: converges in at most $n$ steps 
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Conjugate Gradients}
+\begin{lstlisting}[mathescape]
+$x_0 = $ initial guess
+$r_0 = b-Ax_0$
+$s_0 = r_0$
+for $k = 0, 1, 2, \dots$
+  $\alpha_k = \frac{r_k^T r_k}{s_k^T A s_k}$
+  $x_{k+1} = x_k + \alpha_k s_k$
+  $r_{k+1} = r_k - \alpha_k A s_k$
+  $\beta_{k+1} = r_{k+1}^T r_{k+1} / r_k^T r_k$
+  $s_{k+1} = r_{k+1} + \beta_{k+1} s_k$
+\end{lstlisting}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Convergence}
+\begin{itemize}
+  \item $A$-norm of the error is minimized in each step
+  \item Bound:
+  \[
+  \|e_k\|_A \leq 2 \left( \frac{\sqrt{\kappa} -1}{\sqrt{\kappa} + 1} \right)^k
+\|e_0 \|_A
+\]
+  \item $\kappa$ is the condition number
+  \item for symmetric matrices, $\kappa = \frac{\lambda_{max}}{\lambda_{min}}$
+%  \item Notice: flat, long parts of the parabola correspond to low eigenvalues
+%(difficult eigenvectors).
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Preconditioning}
+We've seen iterations that replace $A$ with a matrix $Q$ such that
+$Q^{-1}A$ resembles the identity matrix. Congugate Gradient takes a
+different approach and solves $Ax=b$ more directly.
+
+Can we combine these ideas?
+
+\emph{Preconditioning} is transforming the original problem $Ax=b$
+with another matrix $Q$ and then solving that modified problem.  For
+example
+\begin{itemize}
+\item Left Preconditioning: $QAx = Qb$
+\item Right Preconditioning: $AQw = b$, $Qw=x$
+\item Symmetric preconditioning: $Q^TAQw = Q^Tb$, $Qw=x$
+\end{itemize}
+For Congugate Gradient, the matrix must be symmetric, so the last form
+is the most common. 
+
+There are methods that generalize conjugate gradient for nonsymmetric
+matrices.  See CS 457 for more details
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Coming Up}
+  \begin{itemize}
+    \item Google, Markov Chains, intro to Monte Carlo Simulations
+    \item Eigenvalues: SVD, Power Method
+    \item Least-Squares
+    \item Monte Carlo Simulations
+  \end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Google (basics)}
+\framesubtitle{many slides courtesy of T. Chartier at Davidson}
+\begin{itemize}
+  \item A component of Google's success can be
+attributed to the PageRank$^{\rm TM}$ algorithm developed by
+Google's founders
+  \item  algorithm determined entirely by link structure of the WWW
+  \item recomputed once a month
+  \item involves no content of any Web page
+  \item How are the search results ordered?
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Randomly Walking with Google}
+
+\begin{itemize}
+    \item start at any webpage
+    \item randomly select a link and follow
+    \item repeat
+    \item what are the outcomes?
+\end{itemize}
+\bigskip
+
+The outcomes of such a random walk are:
+\begin{itemize}
+\item a dead end on a page with no outgoing links
+\item a cycle where you end up where you began: known as a \emph{Markov
+chain} or \emph{Markov process}.
+\item The limiting probability that an infinitely dedicated random
+surfer visits any particular page is its PageRank.
+\item A page has high rank if other pages with high rank link to
+it.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Markov Chains}
+\begin{itemize}
+\item Markov chains can model the behavior of a system that
+depends only on the previous experiment or state.
+\item That is, the next state of the system depends only on the
+current state where the outcome of each experiment is one of a
+discrete set of states.
+\item Markov chains require a transition matrix, $P$, where
+$P(j,i)$ equals the probability of going from state $i$ to state
+$j$.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Markov chain model of a Broken Machine}
+
+A certain office machine has three states:  Working, Temporarily
+Broken, and Permanently Broken.   Each day it is in one of these
+states.  The \emph{transition diagram} between the states is shown
+below.
+
+\pgfimage[width=1.5in]{./figs/machine}
+
+Therefore, the transition matrix is:
+$$P =
+\left(%
+\begin{array}{lll}
+  .9 & .6 & 0 \\
+  .095 & .4 & 0 \\
+  .005 & 0 & 1 \\
+\end{array}%
+\right)
+$$
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Answers via Markov chains}
+
+In our previous model suppose we ask the question:
+
+\begin{block}{}
+If the machine is working on Day 1, what is the probability that
+it is still functional (that is, not permanently broken) a year
+from now?
+\end{block}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Stepping through Time with Markov}
+
+We can answer this question by computing the 365'th power of the
+transition matrix:
+
+$$P =
+\left(%
+\begin{array}{lll}
+  .9 & .6 & 0 \\
+  .095 & .4 & 0 \\
+  .005 & 0 & 1 \\
+\end{array}%
+\right)^{365} =
+\left(%
+\begin{array}{lll}
+    0.1779 & 0.1792 & 0 \\
+    0.0284 & 0.0286 & 0 \\
+    0.7937 & 0.7922 & 1
+\end{array}%
+\right)
+$$
+
+The first column of this matrix gives the probability of being in
+each state on Day 366 (with our assumption that it is working on
+Day 1, so $v^{(0)} = [1~0~0]'$).  We see that the probability that
+the machine is permanently broken in 0.7937 and so there is about
+a 21\% chance that the machine is still functional.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Steady State Solution}
+
+For this Markov chain the steady state solution is the vector
+$\textbf{v} = [0~0~1]'$, as we can see by computing the
+eigenvalues and eigenvectors.  That is, $P\textbf{v} =
+\textbf{v}$.
+\bigskip
+\bigskip
+
+State 3 (Permanently Broken) is called an {\it absorbing state}.
+No matter what state we start in, we will eventually end up in
+State 3 with probability 1, and once in State 3 we can never
+leave.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Back to Google}
+\begin{itemize}
+\item Let $W$ be the set of Web pages that can reached by
+following a chain of hyperlinks starting from a page at Google.
+\item Let $n$ be the number of pages in $W$.
+\item The set $W$ actually varies with time, by the end of 2005,
+$n$ was over 10 billion.
+\item Let $G$ be the $n \times n$ connectivity matrix of $W$, that
+is, $G_{i,j}$ is 1 if there is a hyperlink from page $i$ to page
+$j$ and 0 otherwise.
+\item The matrix $G$ is huge, but very sparse; its number of
+nonzeros is the total number of hyperlinks in the pages in $W$.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Google and Probability}
+\begin{itemize}
+\item Let $c_j$ and $r_i$ be the column and row sums of $G$,
+respectively. That is,
+$$c_j = \sum_i G_{i,j}, \qquad r_i = \sum_j G_{i,j}$$
+\item Then $c_k$ and $r_k$ are the indegree and outdegree of the
+$k$-th page.  In other words, $c_k$ is the number of links into page $k$ 
+and $r_k$ is the number of links from page $k$.
+\item Let $p$ be the fraction of time that the random walk follows
+a link.
+\item Google typically takes this to be $p = 0.85$.
+\item Then $1-p$ is the fraction of time that an arbitrary page is
+chosen.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Google meets Markov}
+\begin{itemize}
+\item Let $A$ be an $n \times n$ matrix whose elements are
+$A_{i,j}
+= p G_{i,j}/c_j + \delta$ where $\delta = (1-p)/n$.
+\item This matrix is the transition matrix of the Markov chain of
+a random walk!
+\item Notice that $A$ comes from scaling the connectivity matrix
+by its column sums.
+\item The $j$-th column is the probability of jumping from the
+$j$-th page to the other pages on the Web.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+    \frametitle{The problem}
+Can write $A$, the transition matrix, as
+\[
+A = p G D + e z^T
+\]
+where $e$ is the vector of all ones and where $ez^T$ account for dead linked 
+pages and 
+\[
+D_{jj} = 1/c_j \,\textnormal{(or 0)}\quad z_j = \delta\, \textnormal{(or $1/n$)}
+\]
+Then $x=Ax$ can be written
+\[
+ (I-pGD)x = (z^Tx) e = e
+\]
+see \texttt{pagerank.m}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Eigenvectors and Google}
+
+Find $x = Ax$ and the elements of $x$ are Google's PageRank.
+Remember $n > 10^{10}$ (as of 2005) and growing.
+\bigskip
+\bigskip
+
+For any particular query, Google finds pages on the Web that match
+the query.  The pages are then listed in the order of their
+PageRank.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matlab}
+\framesubtitle{Moler's scripts}
+To search from a homepage, you will type a statement like:
+\bigskip
+
+\texttt{[U,G] = surfer('http://www.uiuc.edu',n)}.
+\bigskip
+
+This starts at the given URL and tries to surf the Web until it
+has visited $n$ pages.  That is, an $n$ by $n$ matrix is formed.
+\bigskip
+
+Note, \texttt{surfer.m} is very primitive...
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Matlab}
+\framesubtitle{Moler's scripts}
+\begin{itemize}
+  \item Download \texttt{surfer.m}, \texttt{pagerank.m} and \texttt{pagerankpow.m}
+
+  \item \texttt{[U,G] = surfer('http://www.slashdot.org',20);}
+  \begin{description}
+    \item[$U$] = a cell array of $n$ strings, the URLs of the nodes.
+    \item[$G$]= an $n$-by-$n$ sparse matrix with $G(i,j)=1$ if node $j$
+    is linked to node $i$.
+  \end{description}
+  \item Next: \texttt{spy(G)}.  This shows the nonzero
+structure of the connectivity matrix.
+  \item Finally: \texttt{pagerank(U,G)} and the pagerank will
+be computed.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Numerics?}
+\begin{itemize}
+  \item what does this have to do with numerical methods?
+  \item large sparse matrices (although Google avoids this)
+  \item solution to a linear system (eigenvalue problem)
+  \item Markov chains...
+\end{itemize}
+The markov process is important.  Let's step back and look at some
+statistics
+\begin{itemize}
+  \item randomness
+  \item monte carlo
+  \item markov chains
+  \item metropolis algorithm
+\end{itemize}
+Brownian Motion is an example of a Markov process:
+\texttt{http://galileo.phys.virginia.edu/classes/109N/more\_stuff/Applets/brownian/brownian.html} (more later)
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Why}
+\begin{itemize}
+  \item Central to the PageRank (and many many other applications in
+fincance, science, informatics, etc) is that we randomly process
+something
+  \item what we want to know is ``on average'' what is likely to happen
+  \item what would happen if we have an infinite number of samples?
+  \item next: eigenvalues, SVD, pagerank, Monte Carlo
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Integration}
+\framesubtitle{some slides from f. pellanccini}
+  \begin{itemize}
+  \item integral of a function over a domain
+\begin{equation*} 
+\int_{x\in D} f(x) \,dA_x
+\end{equation*}
+  \item the size of a domain
+\begin{equation*} 
+A_D = \int_{x\in D} dA_x
+\end{equation*}
+  \item average of a function over some domain
+\begin{equation*} 
+\frac{\int_{x\in D} f(x) dA_x}{\int_{x\in D} f(x) dA_x}
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{integral example}
+The average ``daily'' snowfall in Champaign last year
+  \begin{itemize}
+    \item domain: year (1d time interval)
+    \item integration variable: day
+    \item function: snowfall depending on day
+  \end{itemize}
+\begin{equation*}
+  average = \frac{\int_{day\in year} s(day)d_{day}}{length of year}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{integral example}
+The average snowfall in Illinois
+  \begin{itemize}
+    \item domain: Illinois (2d surface)
+    \item integration variable: $(x,y)$ location
+    \item function: snowfall depending on location
+  \end{itemize}
+\begin{equation*}
+  average = \frac{\int_{location\in Illinois} s(location)d_{location}}{area of illinois}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{integral example}
+The average snowfall in Illinois today
+  \begin{itemize}
+    \item domain: Illinois $\times$ year (3d space-time)
+    \item integration variable: location and day
+    \item function: snowfall depending on location and day
+  \end{itemize}
+\begin{equation*}
+  average = \frac{\int_{day\in year}\int_{location\in Illinois}s(location,day)d_{location,day}}{area of illinois \cdot length of year}
+\end{equation*}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{discrete random variables}
+\begin{itemize}
+  \item random variable $x$
+  \item values: $x_0, x_1, \dots, x_n$
+  \item probabilities $p_0, p_1,\dots,p_n$ with $\sum_{i=0}^{n}p_i = 1$
+\end{itemize}
+\begin{block}{throwing a die (1-based index)}
+\begin{itemize}
+  \item values: $x_1=1, x_2=2, \dots, x_6=6$
+  \item probabilities $p_i = 1/6$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{expected value and variance}
+\begin{itemize}
+  \item expected value: average value of the variable
+\begin{equation*}
+  E[x] = \sum_{j=1}^{n}x_j p_j
+\end{equation*}
+  \item variance: variation from the average
+\begin{equation*}
+  \sigma^2[x] = E[(x-E[x])^2] = E[x^2] - E[x]^2
+\end{equation*}
+\end{itemize}
+\begin{block}{throwing a die}
+\begin{itemize}
+  \item expected value: $E[x] = (1+2+\dots+6)/6 = 3.5$
+  \item variance: $\sigma^2[x] = 2.916$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{estimated $E[x]$}
+\begin{itemize}
+  \item to estimate the expected value, choose a set of random values
+based on the probability and average the results
+\begin{equation*}
+  E[x] = \frac{1}{N} \sum_{j=1}^{N} x_i
+\end{equation*}
+  \item bigger $N$ gives better estimates
+\end{itemize}
+\begin{block}{throwing a die}
+\begin{itemize}
+  \item 3 rolls: $3,1,6 \rightarrow E[x] \approx (3+1+6)/3 = 3.33$
+  \item 9 rolls: $3,1,6,2,5,3,4,6,2 \rightarrow E[x] \approx (3+1+6+2+5+3+4+6+2)/9 = 3.51$
+\end{itemize}
+\end{block}  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{law of large numbers}
+\begin{itemize}
+  \item by taking $N$ to $\infty$, the error between the estimate an the
+expected value is statistically zero.  That is, the estimate will
+converge to the correct value
+\begin{equation*} 
+  P(E[x] = lim_{N\rightarrow\infty} \frac{1}{N} \sum_{i=1}^{N} x_i) = 1
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{continuous random variable}
+\begin{itemize}
+  \item random variable: $x$
+  \item values: $x\in [a,b]$
+  \item probability: density function $\rho(x)$ with $\int_a^b
+\rho(x)\,dx = 1$
+  \item probability that the variable as value $x$: $\rho(x)$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{uniformly distributed random variable}
+\begin{itemize}
+  \item $\rho(x)$ is constant
+  \item $\int_a^b \rho(x)\,dx = 1$ meaans $\rho(x) = 1/(b-a)$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{continuous extensions}
+\begin{itemize}
+  \item expected value
+  \begin{align*}
+  E[x] & = \int_a^b x\rho(x)\,dx\\
+  E[g(x)] & = \int_a^b g(x)\rho(x)\,dx
+  \end{align*}
+  \item variance
+  \begin{align*}
+  \sigma^2[x] & = \int_a^b (x-E[x])^2\rho(x)\,dx\\
+  \sigma^2[g(x)] & = \int_a^b (g(x)-E[g(x)])^2 p(x)\,dx\\
+  \end{align*}
+  \item estimating the expected value
+  \begin{equation*}
+    E[g(x)] \approx \frac{1}{N} \sum_{i=1}^{N} g(x_i)
+\end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{multidementional extensions}
+\begin{itemize}
+  \item difficult domains (complex geometries)
+  \item expected value
+  \begin{align*}
+  E[g(x)] & = \int_{x\in D} g(x)\rho(x)\,dA_x
+  \end{align*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{(deterministic) numerical integration}
+\begin{itemize}
+  \item  split domain into set of fixed segments
+  \item sum function values with size of segments (Riemann!)
+\end{itemize}
+\begin{center}
+  \pgfimage[height=4cm]{./figs/map2}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

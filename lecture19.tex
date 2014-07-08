@@ -1,0 +1,443 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%pdflatex -jobname lecture15.print lecture15
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+\usepackage{underscore}
+\usepackage{url}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\def\us{\char`\_}
+
+%
+%
+%
+
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\vd}{{\bf{d}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vf}{{\bf{f}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vv}{{\bf{v}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 19}
+\subtitle{Differentiation}
+\date{October 29, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Motivation, Simulating Newtonian Particles}
+%% WDG - URLs confirmed 3/30/09
+\url{http://www.youtube.com/watch?v=TaCmedX7ycs}
+
+\url{http://gameplanets.blogspot.com/2007/06/physics-simulations.html}
+
+\begin{itemize}
+  \item<2-> Newton's law: $\vf = d(m\vv)/dt$
+\begin{align*}
+  \vp_i &= [x_i, y_i, z_i], \quad \vv_i [x'_i, y'_i, z'_i]\\
+  {d\vp\over dt} = \vp'_i & = \vv_i\\
+  \vv'_i & = \frac{1}{m_i} \vf_i(t)\\
+\end{align*}
+  \item<3-> Spring Force (Hooke's Law) with damping:
+  \begin{align*}
+    \vf = -(k_s + k_d \vd'\cdot \vd) \vd
+  \end{align*}
+  \item<4-> We need to numerically differentiate
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Outline}
+Previous
+\begin{itemize}
+  \item Given data $y_i$ at node $x_i$ for $i=0,\dots,n$,
+find a polynomial $p(x)$ that approximates the function.
+  \item That is, approximate a function $f(x)$ with some function
+(polynomial) $g(x)$
+\end{itemize}
+\bigskip
+Goals
+\begin{itemize}
+  \item Now, try to approximate the derivative of $f'(x)$
+  \item Begin with Taylor series
+  \item Establish accuracy estimates
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Problem Statement}
+\begin{block}{Differentiation}
+  \begin{itemize}
+      \item Given $f(x+h)$, $f(x)$ and $f(x-h)$, i.e. $f$ evaluated at evenly spaced points
+      \item Approximate $f'(x)$
+  \end{itemize}
+\end{block}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Strategy}
+\begin{itemize}
+    \item Use Taylor Series
+    \begin{align*}
+        f(x+h) &= f(x) + h f'(x) + \frac{h^2}{2}f''(\xi),\;\;\;\;\;\;\;\;\; \mbox{ for } \xi \in [x, x+h]\\
+        f(x)   &= f(x)\\
+        f(x-h) &= f(x) - h f'(x) + \frac{h^2}{2}f''(\xi),\;\;\;\;\;\;\;\;\; \mbox{ for } \xi \in [x-h, x]
+    \end{align*}
+    \item<2-> Don't worry about $\xi$, some unknown point in the interval
+    \item<3-> Manipulate, add and subtract the above Taylor Series, so 
+              that $f'(x)$ is isolated on one side of the equals sign and 
+              an approximation to $f'(x)$ is on the other side
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+\frametitle{First attempt: Taylor}
+\begin{itemize}
+    \item Taylor series:
+    \begin{equation*}
+      f(x+h) = f(x) + h f'(x) + \frac{h^2}{2}f''(\xi)
+    \end{equation*}
+    \item<2->Thus
+    \begin{equation*}
+      f'(x) = \frac{f(x+h)-f(x)}{h} - \frac{h}{2}f''(\xi)
+    \end{equation*}
+    \item<3-> Called a forward difference because of the ``forward" 
+              looking\\evaluation of $f$ at $f(x+h)$
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{First attempt: Taylor}
+\begin{block}{Forward Difference}
+\begin{equation*}
+  f'(x) \approx \frac{f(x+h)-f(x)}{h}
+\end{equation*}
+with
+\begin{equation*}
+  error = - \frac{h}{2}f''(\xi) = \mO(h)
+\end{equation*}
+\end{block}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Numerical Test, \texttt{diff_fwd.m}}
+\begin{itemize}
+    \item Consider
+    \begin{equation*}
+      f(x) = \sin(\pi x)\,\, \text{on}\,\, [-1,1]
+    \end{equation*}
+    \item Approximate $f'(x) = \pi \cos(\pi x)$ with
+    \begin{equation*}
+      f'(x) \approx \frac{f(x+h)-f(x)}{h}
+    \end{equation*}
+    \item<2-> Numerically estimate $p$ for
+        \[ err = |\,f_{exact}'(x) - f_{approx}'(x)| = c h^p \]
+    \item<3-> Consider two $h$ values, $h_k$ and $h_j$, giving
+    \begin{align*}
+      err_k & = c\, (h_k)^p\\
+      err_j & = c\, (h_j)^p
+    \end{align*}
+    \item<4-> So
+    \begin{equation*}
+      p = \frac{ \log(err_k/err_j) }{ \log(h_k/h_j) }
+    \end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Visualizing the Differencing}
+\begin{itemize}
+    \item \url{http://www.cse.illinois.edu/iem/integration/fda/}
+    \item Choose ``1st order forward" and ``1st order backward" to 
+        experiment with foward and backward differencing
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Can we do better?}
+\begin{block}{Forward Difference}
+\begin{equation*}
+  f'(x) \approx \frac{f(x+h)-f(x)}{h}
+\end{equation*}
+with
+\begin{equation*}
+  error = - \frac{h}{2}f''(\xi) = \mO(h)
+\end{equation*}
+\end{block}
+\begin{block}{Backward Difference}
+\begin{equation*}
+  f'(x) \approx \frac{f(x)-f(x-h)}{h}
+\end{equation*}
+with
+\begin{equation*}
+  error = \frac{h}{2}f''(\xi) = \mO(h)
+\end{equation*}
+\end{block}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Can we do better?}
+\begin{itemize}
+    \item Look at the Forward AND Backward Taylor series together
+    \begin{align*}
+      f(x+h) & = f(x) + h f'(x) + \frac{h^2}{2}f''(x) + \frac{h^3}{6}f'''(x) + \frac{h^4}{24}f''''(\xi_{+})\\
+      f(x-h) & = f(x) - h f'(x) + \frac{h^2}{2}f''(x) - \frac{h^3}{6}f'''(x) + \frac{h^4}{24}f''''(\xi_{-})\\
+    \end{align*}
+
+    \item<2-> Subtract them:
+    \begin{equation*}
+      f(x+h) - f(x-h) = 2 h f'(x) + \frac{h^3}{3}f'''(x) + \mO(h^4)
+    \end{equation*}
+    \item<3-> Thus
+    \begin{equation*}
+      f'(x) = \frac{f(x+h) - f(x-h)}{2 h} + \frac{h^2}{6}f'''(x) + \mO(h^3)
+    \end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Central Difference}
+\begin{block}{Central Difference}
+\begin{equation*}
+  f'(x) = \frac{f(x+h) - f(x-h)}{2 h} + \frac{h^2}{6}f'''(x) + \mO(h^3)
+\end{equation*}
+with
+\begin{equation*}
+  error = - \frac{h^2}{6}f'''(\xi) = \mO(h^2)
+\end{equation*}
+\end{block}
+\bigskip
+\begin{block}{More Accurate}
+\begin{itemize}
+    \item Forward and backward differences are $\mO(h)$ 
+    \item Central difference is $\mO(h^2)$
+\end{itemize}
+\end{block}
+\end{frame}
+\begin{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\frametitle{Numerical Test, \texttt{diff_central.m}}
+\begin{itemize}
+    \item Consider
+    \begin{equation*}
+      f(x) = \sin(\pi x)\,\, \text{on}\,\, [-1,1]
+    \end{equation*}
+    \item Approximate $f'(x) = \pi \cos(\pi x)$ with
+    \begin{equation*}
+      f'(x) \approx \frac{f(x+h)-f(x-h)}{2 h}
+    \end{equation*}
+    \item<2-> Numerically estimate $p$ for
+        \[ err = |\,f_{exact}'(x) - f_{approx}'(x)| = c h^p \]
+    \item<3-> Consider two $h$ values, $h_k$ and $h_j$, giving
+    \begin{align*}
+      err_k & = c\, (h_k)^p\\
+      err_j & = c\, (h_j)^p
+    \end{align*}
+    \item<4-> So
+    \begin{equation*}
+      p = \frac{ \log(err_k/err_j) }{ \log(h_k/h_j) }
+    \end{equation*}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{What's with the Names?}
+\begin{itemize}
+    \item Forward difference looks forward
+          \[f'(x) \approx \frac{f(x+h) - f(x)}{h}\]
+          \vspace{-18pt}
+          \begin{center}
+          \includegraphics[scale=0.23]{./figs/forwarddiff.png}
+          \end{center}
+    \item<2-> Backward difference looks backward
+          \[f'(x) \approx \frac{f(x) - f(x-h)}{h}\]
+          \vspace{-18pt}
+          \begin{center}
+          \includegraphics[scale=0.23]{./figs/backwarddiff.png}
+          \end{center}
+    \item<3-> Central difference centers the subtraction around $x$
+          \[f'(x) \approx \frac{f(x+h) - f(x-h)}{2 h}\]
+          \vspace{-18pt}
+          \begin{center}
+          \includegraphics[scale=0.23]{./figs/centraldiff.png}
+          \end{center}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Visualizing the Differencing}
+\begin{itemize}
+    \item \url{http://www.cse.illinois.edu/iem/integration/fda/}
+    \item Choose ``2nd order centered" to experiment with central differencing
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Even Smarter?}
+\begin{itemize}
+    \item Take a look at the central difference:
+    \begin{equation*}
+      \phi(h) = \frac{f(x+h) - f(x-h)}{2h} \approx f'(x)
+    \end{equation*}
+    \item<2-> We know that
+    \begin{align*}
+      f'(x) & =  \frac{f(x+h) - f(x-h)}{2h} + c_2 h^2 + c_4 h^4 + c_6 h^6 + \dots\\
+            & =  \phi(h) + c_2 h^2 + c_4 h^4 + c_6 h^6 + \dots\\
+     \phi(h)& =  f'(x) - c_2 h^2 - c_4 h^4 - c_6 h^6 - \dots
+    \end{align*}
+    \item<3-> We expect the error to be reduced by 1/4 when $h$ is cut in half.
+    \item<4-> Utilize this!
+    \begin{align*}
+     \phi(h)& =  f'(x) - c_2 h^2 - c_4 h^4 - c_6 h^6 - \dots\\
+     \phi(h/2)& =  f'(x) - c_2 (h/2)^2 - c_4 (h/2)^4 - c_6 (h/2)^6 - \dots
+    \end{align*}
+\end{itemize} 
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Richardson Extrapolation}
+\begin{itemize}
+    \item Utilize this!
+    \begin{align*}
+     \phi(h)& =  f'(x) - c_2 h^2 - c_4 h^4 - c_6 h^6 - \dots\\
+     \phi(h/2)& =  f'(x) - c_2 (h/2)^2 - c_4 (h/2)^4 - c_6 (h/2)^6 - \dots
+    \end{align*}
+    \item<2-> Combine these to elimintate the ``$c_2$'' term:
+    \begin{equation*}
+     \phi(h) - 4 \phi(h/2) =  -3 f'(x) - (3/4)c_4 h^4 - (15/16)c_6 h^6 - \dots
+    \end{equation*}
+    \item<3->Dividing by -3
+    \begin{equation*}
+     \phi(h/2) + (1/3) (\phi(h/2) - \phi(h)) =  f'(x) + (1/4)c_4 h^4 + (5/16)c_6 h^6 - \dots
+    \end{equation*}
+    \item<4-> Giving us 
+    \begin{block}{Fourth Order Richardson Extrapolation}
+    \begin{equation*}
+     f'(x) = \phi(h/2) + (1/3) (\phi(h/2) - \phi(h)) + \mO(h^4)
+    \end{equation*}
+    where $\phi(h)$ is the central difference approximation.
+    \end{block}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Numerical Test, \texttt{diff_richard.m}}
+\begin{itemize}
+    \item Consider
+    \begin{equation*}
+      f(x) = \sin(\pi x)\,\, \text{on}\,\, [-1,1]
+    \end{equation*}
+    \item Approximate $f'(x) = \pi \cos(\pi x)$ with
+    \begin{equation*}
+      f'(x) = \phi(h/2) + (1/3) (\phi(h/2) - \phi(h)) + \mO(h^4)
+    \end{equation*}
+    \item<2-> Numerically estimate $p$ as before
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{And better?}
+\begin{itemize}
+    \item We can extend the Richardson extrapolation idea to any order.
+    \item Idea: use $\psi(h) =  \phi(h/2) + (1/3) (\phi(h/2) - \phi(h))$ to
+    annihilate the fourth order error term:
+    \item<2-> Giving us 
+    \begin{block}{Sixth Order Richardson Extrapolation}
+    \begin{equation*}
+      f'(x) = \psi(h/2) + (1/15)(\psi(h/2) - \psi(h)) + \mO(h^6)
+    \end{equation*}
+    \end{block}
+    where $\psi(h)$ is the fourth order Richardson extrapolation.
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Recap}
+Numerical Differentiation
+\begin{itemize}
+  \item Approximate the derivative of $f'(x)$
+  \begin{itemize}
+        \item Forward difference, $\;\mO(h)$ error
+        \item Backward difference, $\;\mO(h)$ error
+        \item Central difference, $\;\mO(h^2)$ error 
+        \item Richardson extrapolation, $\; \mO(h^4)$ and better error
+  \end{itemize}
+  \item Used Taylor series for deriving each method
+  \item Established accuracy estimates using Taylor series
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

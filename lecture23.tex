@@ -1,0 +1,370 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%pdflatex -jobname lecture15.print lecture15
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%\usepackage{pgfpages}
+%\pgfpagesuselayout{2 on 1}[letterpaper]
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+\newcommand{\norm}[1]{{\ensuremath{{\|#1\|}}}}
+\newcommand{\matdim}[2]{\ensuremath{#1\times#2}}
+\newcommand{\rank}[1]{\ensuremath{\mathrm{rank}(#1)}}
+\newcommand{\epsm}{\ensuremath{\varepsilon_m}}
+\newcommand{\cmd}[1]{{\normalfont\ttfamily\bfseries#1}}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 23}
+\subtitle{Least Squares and SVD}
+\date{November 17, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Polling data}
+Recall in interpolation we wanted to find a curve that went through \textit{all} of the data points.  
+\bigskip
+
+Suppose we are given the data $\{(x_1,y_1), ..., (x_n, y_n)\}$ and we want to find a curve that \textit{best fits} the data.  
+\bigskip
+
+\begin{center}
+  \pgfimage [width = 5cm] {figs/polling}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Fitting curves}
+
+\begin{center}
+  \pgfimage [width = 10cm] {figs/lsquadratic}
+\end{center}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Fitting a line}
+Given $n$ data points $\{(x_1,y_i),...,(x_n,y_n)\}$ find $a$ and $b$ such that $$y_i =  ax_i - b \quad \forall i\in [1,n].$$  
+
+\bigskip
+
+In matrix form, find $a$ and $b$ that solves $$\begin{bmatrix}x_1 & 1 \\ \vdots & \vdots \\x_n & 1 \end{bmatrix} \begin{bmatrix}a \\ b \end{bmatrix} = \begin{bmatrix} y_1 \\ \vdots \\ y_n \end{bmatrix}$$
+
+Systems with more equations than unknowns are called {\bf{overdetermined}}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Overdetermined Systems}
+If $A$ is an $m\times n$ matrix, then in general, an $m \times 1$ vector $b$ may not lie in the column space of $A$.  Hence $Ax=b$ may not have an exact solution.
+
+\begin{definition} The {\bf{residual}} vector is  $$r = b-Ax.$$ 
+\end{definition}
+The {\bf{least squares}} solution is given by minimizing the square of the residual in the 2-norm.
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Normal equations}
+Writing $r = (b-Ax)$ and substituting, we want to find an $x$ that minimizes the following function $$\phi(x) = ||r||^2_2 = r^Tr = (b-Ax)^T(b-Ax) = b^Tb - 2x^TA^Tb + x^TA^TAx$$
+
+\bigskip
+
+From calculus we know that the minimizer occurs where $\nabla\phi(x)=0$.  
+
+\bigskip
+
+The derivative is given by $$\nabla\phi(x) = -2A^Tb+  2A^TAx = 0$$
+
+
+\begin{definition} The system of {\bf{normal equations}} is given by $$A^TAx = A^Tb.$$ 
+\end{definition}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Solving normal equations}
+Since the normal equations forms a symmetric system, we can solve by computing the Cholesky factorization $$A^TA = LL^T$$ and solving $Ly = A^Tb$ and $L^Tx = y$.     
+
+\bigskip
+
+Consider 
+\[A = 
+\begin{bmatrix}
+1 & 1 \\ 
+\epsilon & 0 \\
+0 & \epsilon
+\end{bmatrix}
+\]
+where $0 < \epsilon < \sqrt{\epsilon_{mach}}$.  
+The normal equations for this system is given by 
+\[A^TA = \begin{bmatrix}
+1+\epsilon^2 & 1 \\
+1 & 1+\epsilon^2
+\end{bmatrix} = 
+\begin{bmatrix}
+1 & 1 \\
+1 & 1
+\end{bmatrix}
+\]
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Normal equations: conditioning}
+The normal equations tend to worsen the condition of the matrix. 
+
+\bigskip
+
+\begin{theorem}
+$$cond(A^TA) = (cond(A))^2$$
+\end{theorem}
+\bigskip
+
+\begin{lstlisting}
+>> A = rand(10,10);
+>> cond(A)
+   43.4237
+>> cond(A'*A)
+   1.8856e+03
+\end{lstlisting}
+
+\bigskip
+
+How can we solve the least squares problem without squaring the condition of the matrix?
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Other approaches}
+\begin{itemize}
+\item $QR$ factorization.
+\begin{itemize}
+\item For $A \in \mathbb{R}^{m\times n},$ factor $A = QR$ where 
+\begin{itemize}
+\item $Q$ is an $m\times m$ orthogonal matrix 
+\item $R$  is an $m\times n$ upper triangular matrix (since $R$ is an $m\times n$ upper triangular matrix we can write $R = \begin{bmatrix} R' \\ 0 \end{bmatrix}$ where $R$ is $n\times n$ upper triangular and 0 is the $(m-n) \times n$ matrix of zeros)
+\end{itemize}
+\end{itemize}
+
+\bigskip
+
+\item SVD - singular value decomposition
+\begin{itemize}
+\item For $A \in \mathbb{R}^{m\times n},$ factor $A = USV^T$ where 
+\begin{itemize}
+\item $U$ is an $m\times m$ orthogonal matrix
+\item $V$ is an $n\times n$ orthogonal matrix
+\item $S$ is an $m\times n$ diagonal matrix whose elements are the singular values.
+\end{itemize} 
+\end{itemize}
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Orthogonal matrices}
+
+\begin{definition}
+A matrix $Q$ is orthogonal if $$Q^TQ = QQ^T = I$$
+\end{definition}
+
+\bigskip
+
+Orthogonal matrices preserve the Euclidean norm of any vector $v,$ $$||Qv||^2_2 = (Qv)^T(Qv) =v^TQ^TQv = v^Tv = ||v||^2_2.$$  
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Using QR factorization for least squares}
+Now that we know orthogonal matrices preserve the euclidean norm, we can apply orthogonal matrices to the residual vector without changing the norm of the residual. 
+$$\|r\|^2_2 = \|b-Ax\|^2_2 = \left\|b-Q \begin{bmatrix} R \\ 0 \end{bmatrix}x\right\|^2_2 = \left\|Q^Tb - Q^TQ\begin{bmatrix}R \\ 0 \end{bmatrix}x \right\|^2_2 = \left\|Q^Tb - \begin{bmatrix} R \\ 0 \end{bmatrix}x \right\|^2_2$$
+
+\bigskip
+
+If $Q^Tb = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$ and $x = \begin{bmatrix} x_1 \\ x_2\end{bmatrix}$ then 
+$$\left\|Q^Tb-\begin{bmatrix}R\\0\end{bmatrix}\right\|^2_2 = \left\|\begin{bmatrix}c_1\\c_2\end{bmatrix} - \begin{bmatrix} Rx_1\\0\end{bmatrix}\right\|^2_2 = \left\|\begin{bmatrix} c_1-Rx_1 \\ c_2 \end{bmatrix}\right\|^2_2 = ||c_1 - Rx_1||^2_2 + ||c_2||^2_2$$ 
+Hence the least squares solution is given by solving $\begin{bmatrix}R\\0\end{bmatrix}\begin{bmatrix}x_1 \\ x_2\end{bmatrix} = \begin{bmatrix}c_1 \\ c_2 \end{bmatrix}$.  We can solve $Rx_1 = c_1$ using back substitution and the residual is $||r||_2 = ||c_2||_2$.  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gram-Schmidt orthogonalization}
+One way to obtain the $QR$ factorization of a matrix $A$ is by Gram-Schmidt orthogonalization.
+
+\bigskip
+
+For each column of $A$, subtract out its component in the other columns.
+
+\bigskip
+
+For the simple case of 2 vectors $\{a_1,a_2\}$, first normalize $a_1$ and obtain $$q_1 = \frac{a_1}{||a_1||}.$$  Now subtract from $a_2$ the components from  $q_1$.  This is given by $$a_2' = a_2 - (q_1^Ta_2)q_1.$$  
+
+Normalizing $a_2'$ we have $$q_2 = \frac{a_2'}{||a_2'||}$$
+
+Repeating this idea for $n$ columns gives us Gram-Schmidt orthogonalization.
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Gram-Schmidt orthogonalization}
+Since $R$ is upper triangular and $A = QR$ we have 
+\begin{eqnarray*}
+a_1 &=& q_1r_{11} \\
+a_2 &=& q_1r_{12} + q_2r_{22} \\
+\vdots &=& \quad \vdots \\
+a_n &=& q_1r_{1n} + q_2r_{2n} + ... + q_nr_{nn}
+\end{eqnarray*}
+From this we see that $r_{ij} = q_i^T a_j, j>i$  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+\frametitle{Gram-Schmidt orthogonalization}
+
+\begin{lstlisting}
+function [Q,R] = gs_qr (A)
+
+m = size(A,1);
+n = size(A,2);
+
+for i = 1:n 
+    R(i,i) = norm(A(:,i),2);
+    Q(:,i) = A(:,i)./R(i,i);
+    for j = i+1:n
+        R(i,j) = Q(:,i)' * A(:,j);
+        A(:,j) = A(:,j) - R(i,j)*Q(:,i);
+    end
+end
+
+end
+\end{lstlisting}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Using SVD for least squares}
+Recall that a singular value decomposition is given by 
+\[
+A =
+\begin{bmatrix}
+    \vdots & \vdots & \vdots\\
+    u_1    & \dots  & u_m \\
+    \vdots & \vdots & \vdots
+\end{bmatrix}
+\begin{bmatrix}
+    \sigma_1 &        &          &        &\\
+             & \ddots &          &        & \\
+             &        & \sigma_r &        & \\
+             &        &          & \ddots & \\
+             &        &          &        & 0 
+\end{bmatrix}
+\begin{bmatrix}
+    \dots & v_1^T & \dots\\
+    \dots & \vdots & \dots\\
+    \dots & v_n^T & \dots
+\end{bmatrix}
+\] where $\sigma_i$ are the singular values.  
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Using SVD for least squares}
+Assume that $A$ has rank $k$ (and hence $k$ nonzero singular values $\sigma_i$) and recall that we want to minimize $$||r||^2_2 = ||b-Ax||^2_2.$$  Substituting the SVD for $A$ we find that $$||r||^2_2 = ||b-Ax||^2_2 = ||b-USV^Tx||^2_2$$  where $U$ and $V$ are orthogonal and $S$ is diagonal with $k$ nonzero singular values.  $$||b-USV^Tx||^2_2 = ||U^Tb-U^TUSV^Tx||^2_2 = ||U^Tb-SV^Tx||^2_2$$ 
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Using SVD for least squares}
+ Let $c = U^Tb$ and $y = V^Tx$ (and hence $x=Vy$) in $||U^Tb-SV^Tx||^2_2.$  We now have $$||r||^2_2 = ||c-Sy||^2_2$$  Since $S$ has only $k$ nonzero diagonal elements, we have $$||r||^2_2 = \sum_{i=1}^k (c_i-\sigma_i y_i)^2 + \sum_{i=k+1}^n c_i^2$$ which is minimized when $y_i = \frac{c_i}{\sigma_i}$ for $1\leq i \leq k$.
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Using SVD for least squares}
+\begin{theorem}
+Let $A$ be an $m \times n$ matrix of rank $r$ and let $A = USV^T$, 
+the singular value decomposition.  
+The least squares solution of the system $Ax=b$ is 
+$$x = \sum_{i=1}^r(\sigma^{-1}_ic_i)v_i$$ where $c_i = u_i^Tb.$ 
+\end{theorem}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

@@ -1,0 +1,572 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usecolortheme{luke}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usecolortheme{luke2}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  %\setbeamercovered{transparent}
+}
+
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 3}
+\subtitle{Numerical Representation}
+\date{September 1, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{What we'll do:}
+\begin{itemize}
+  \item look at floating point representation in its basic form
+  \item expose errors of a different form: rounding error
+  \item highlight IEEE-754 standard
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Why this is important:}
+\begin{itemize} 
+  \item Errors come in two forms: truncation error and rounding error
+    \begin{itemize}
+      \item we always have them...
+      \item case study: Intel
+      \item our jobs as developers: reduce impact
+    \end{itemize}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Next: Floating Point Numbers}
+  \begin{itemize}
+    \item We're familiar with base 10 representation of numbers:
+      \begin{equation*}
+        1234 = 4\times 10^0 + 3\times 10^1 + 2\times 10^2 + 1\times 10^3
+      \end{equation*}
+      and
+      \begin{equation*}
+        .1234 = 1\times 10^{-1} + 2\times 10^{-2} + 3\times 10^{-3} +
+4\times 10^{-4}
+\end{equation*}
+    \item we write 1234.1234 as an integer part and a fractional part:
+      \begin{equation*}
+        a_3a_2a_1a_0.b_1b_2b_3b_4
+\end{equation*}
+    \item For some (even simple) numbers, there may be an
+\emph{infinite} number of digits to the right:
+      \begin{align*}  
+          \pi & = 3.14159\dots\\
+          1/9 & = 0.11111\dots\\
+          \sqrt{2} & = 1.41421\dots\\  
+      \end{align*}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Other bases}
+  \begin{itemize}
+    \item So far, we have just base 10.  What about base $\beta$?
+    \item binary ($\beta = 2$), octal ($\beta = 8$), hexadecimal ($\beta
+= 16$), etc
+    \item In the $\beta$-system we have
+  \begin{equation*}
+        (a_n\dots a_2a_1a_0.b_1b_2b_3b_4\dots)_{\beta} =
+\sum_{k=0}^{n}a_k\beta^{k} + \sum_{k=0}^{\infty} b_k \beta^{-k}
+\end{equation*}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[shrink]
+\frametitle{Integer Conversion}
+An algorithm to compute the base 2 representation of a base 10 integer
+\begin{align*}
+(N)_{10} & = (a_j a_{j-1}\dots a_2 a_0)_2\\
+& = a_j\cdot 2^j + \dots + a_1\cdot 2^1 + a_0\cdot 2^0
+\end{align*}
+Compute $(N)_{10}/2 = Q + R$:
+\begin{equation*}
+  \frac{N}{2} = 
+\underbrace{a_j\cdot 2^{j-1} + \dots + a_1\cdot 2^0}_{=Q} +
+\underbrace{\frac{a_0}{2}}_{=R/2}
+\end{equation*}
+\begin{example}{Example: compute $(11)_{10}$ base 2}
+\begin{align*}
+11/2 = 5R1 \quad\Rightarrow\quad a_0 = 1\\
+5/2 = 2R1 \quad\Rightarrow\quad a_1 = 1\\
+2/2 = 1R0 \quad\Rightarrow\quad a_2 = 0\\
+1/2 = 0R1 \quad\Rightarrow\quad a_3 = 1\\
+\end{align*}
+So $(11)_{10} = (1011)_{2}$
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{The other way...}
+  Convert a base-2 number to base-10:
+\begin{align*}
+  &(11\,000\,101)_2 \\
+& = 
+1\times 2^7 +
+1\times 2^6 +
+0\times 2^5 +
+0\times 2^4 +
+0\times 2^3 +
+1\times 2^2 +
+0\times 2^1 +
+1\times 2^0\\
+& = 1 + 2(0 + 2(1 + 2(0 + 2(0 + 2(0 + 2(1 + 2(1)))))))\\
+& = 197
+\end{align*}
+
+\begin{block}{Matlab}
+\begin{lstlisting}
+>> dec2bin(197)
+ans = 11000101
+
+>> bin2dec('11000101')
+ans = 197
+\end{lstlisting}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Converting fractions}
+\begin{itemize}
+  \item straight forward way is not easy
+  \item goal: for $x\in[0,1]$ write
+  \begin{equation*}
+    x = 0.b_1b_2b_3b_4\dots = \sum_{k=1}^{\infty} c_k \beta^{-k} =
+(0.c_1c_2c_3\dots )_{\beta}
+\end{equation*}
+  \item $\beta(x) = (c_1.c_2c_3c_4\dots)_{\beta}$
+  \item multiplication by $\beta$ in base-$\beta$ only shifts the radix
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[shrink]
+\frametitle{Fraction Algorithm}
+An algorithm to compute the binary representation of a fraction $x$:
+\begin{align*}
+x &= 0.b_1b_2b_3b_4\dots\\
+& = b_1\cdot 2^{-1} + \dots\\
+\end{align*}
+Multiply $x$ by 2.  The integer part of $2x$ is $b_1$
+\begin{equation*}
+2x = b_1\cdot 2^0 + b_2\cdot 2^{-1} + b_3\cdot 2^{-2} + \dots
+\end{equation*}
+\begin{example}{Example:Compute the binary representation of 0.625}
+\begin{align*}
+2\cdot 0.625 = 1.25 \quad\Rightarrow\quad b_{-1} = 1\\
+2\cdot 0.25 = 0.5 \quad\Rightarrow\quad b_{-2} = 0\\
+2\cdot 0.5 = 1.0 \quad\Rightarrow\quad b_{-3} = 1\\
+\end{align*}
+So $(0.625)_{10} = (0.101)_{2}$
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{A problem with precision}
+\begin{lstlisting}[mathescape]
+$r_0 = x$
+for $k=1,2,\dots,m$
+  if $r_{k-1} \geq 2^{-k}$
+    $b_k = 1$
+    $r_k = r_{k-1} - 2^{-k}$
+  else
+    $b_k = 0$
+  end 
+end
+\end{lstlisting}
+\begin{tabular}{l | l | l | l}\hline
+$k$ & $2^{-k}$ & $b_k$ & $r_k = r_{k-1} - b_{k}2^{-k}$\\\hline
+0 & & & 0.8125 \\
+1 & 0.5    & 1 & 0.3125 \\
+2 & 0.25   & 1 & 0.0625 \\
+3 & 0.125  & 0 & 0.0625 \\
+4 & 0.0625 & 1 & 0.0000 \\
+\end{tabular}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{A problem with precision}
+For other numbers, such as $\frac{1}{5} = 0.2$, an infinite length
+is needed.
+
+\begin{block}{}
+$0.2 \quad\rightarrow\quad .0011\, 0011\, 0011\, \dots$
+
+\vspace{0.5cm}
+So 0.2 is stored just fine in base-10, but needs infinite number of digits
+in base-2
+\end{block}
+
+\begin{alertblock}{!!!}
+This is \emph{roundoff} error in its basic form...
+\end{alertblock}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[shrink]
+\frametitle{Intel}
+\pgfimage[width=\textwidth]{figs/intel1}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[shrink]
+\frametitle{Intel}
+\pgfimage[width=\textwidth]{figs/intel2}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[shrink]
+\frametitle{Intel}
+\pgfimage[width=\textwidth]{figs/intel3}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Intel Timeline}
+\framesubtitle{from emery.com}
+\begin{description}
+\item[June 1994]  Intel engineers discover the division error.  Managers
+decide the error will not impact many people.  Keep the issue internal.
+\item[June 1994] Dr Nicely at Lynchburg College notices computation problems
+\item[Oct 19, 1994] After months of testing, Nicely confirms that other
+errors are not the cause.  The problem is in the Intel Processor.
+\item[Oct 24, 1994] Nicely contacts Intel.  Intel duplicates error.
+\item[Oct 30, 1994] After no action from Intel, Nicely sends an email
+\end{description}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[containsverbatim,shrink]
+\frametitle{Intel Timeline}
+\framesubtitle{from emery.com}
+\begin{block}{}
+\begin{verbatim}
+FROM:  Dr. Thomas R. Nicely
+       Professor of Mathematics
+       Lynchburg College
+       1501 Lakeside Drive
+       Lynchburg, Virginia 24501-3199
+
+       Phone:     804-522-8374
+       Fax:       804-522-8499
+       Internet:  nicely@acavax.lynchburg.edu
+
+TO:    Whom it may concern
+
+RE:    Bug in the Pentium FPU
+
+DATE:  30 October 1994
+
+It appears that there is a bug in the floating point unit
+(numeric coprocessor) of many, and perhaps all, Pentium
+processors.
+
+In short, the Pentium FPU is returning erroneous values 
+for certain division operations. For example,
+     0001/824633702441.0
+is calculated incorrectly (all digits beyond the eighth
+significant digit are in error). This can be verified in
+compiled code, an ordinary spreadsheet such as Quattro Pro
+or Excel, or even the Windows calculator (use the
+scientific mode), by computing
+     00(824633702441.0)*(1/824633702441.0),
+which should equal 1 exactly (within some extremely small
+rounding error; in general, coprocessor results should 
+contain 19 significant decimal digits).  However, the
+Pentiums tested return
+     0000.999999996274709702
+.
+.
+.
+\end{verbatim}
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Intel Timeline}
+\framesubtitle{from emery.com}
+\begin{description}
+\item[Nov 1, 1994]  Software company Phar Lap Software receives Nicely's
+email.  Sends to colleagues at Microsoft, Borland, Watcom, etc.
+decide the error will not impact many people.  Keep the issue internal.
+\item[Nov 2, 1994]  Email with description goes global.
+\item[Nov 15, 1994] USC reverse-engineers the chip to expose the problem.
+Intel still denies a problem.  Stock falls.
+\item[Nov 22, 1994] CNN \emph{Moneyline} interviews Intel.  Says the problem
+is minor.
+\item[Nov 23, 1994] The MathWorks develops a fix.
+\item[Nov 24, 1994] New York Times story.  Intel still sending out flawed
+chips.  Will replace chips only if it caused a problem in an important
+application.
+\item[Dec 12, 1994] IBM halts shipment of Pentium based PCs
+\item[Dec 16, 1994] Intel stock falls again.
+\item[Dec 19, 1994] More reports in the NYT: lawsuits, etc.
+\item[Dec 20, 1994] Intel admits.  Sets aside \$420 million to fix.
+\end{description}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical "bugs"}
+\begin{alertblock}{Obvious}
+Software has bugs
+\end{alertblock}
+
+\vspace{1.0cm}
+\begin{alertblock}{Not-SO-Obvious}
+Numerical software has two unique bugs:
+\begin{enumerate}
+  \item roundoff error
+  \item truncation error
+\end{enumerate}
+\end{alertblock}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Numerical Errors}
+\begin{block}{Roundoff}
+\emph{Roundoff} occurs when digits in a decimal point (0.3333...) are lost
+(0.3333) due to a limit on the memory available for storing one numerical
+value.
+\end{block}
+
+\vspace{1.0cm}
+\begin{block}{Truncation}
+\emph{Truncation} error occurs when discrete values are used to
+approximate a mathematical expression.
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Uncertainty: well- or ill-conditioned?}
+\vspace{1.0cm}
+Errors in input data can cause \emph{uncertain} results
+\begin{itemize}
+  \item input data can be experimental or rounded.  leads to a certain
+  variation in the results
+  \item \emph{well-conditioned}: numerical results are insensitive to small
+  variations in the input
+  \item \emph{ill-conditioned}: small variations lead to drastically different
+  numerical calculations (a.k.a. poorly conditioned)
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Our Job}
+As numerical analysts, we need to
+\begin{enumerate}
+  \item solve a problem so that the calculation is not susceptible to large
+  roundoff error
+  \item solve a problem so that the approximation has a \emph{tolerable}
+  truncation error
+\end{enumerate}
+
+\vspace{1.0cm}
+How?
+\begin{itemize}
+  \item incorporate roundoff-truncation knowledge into
+  \begin{itemize}
+    \item the mathematical model
+    \item the method
+    \item the algorithm
+    \item the software design
+  \end{itemize}
+  \item awareness $\rightarrow$ correct interpretation of results
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Floating Points}
+\begin{block}{Normalized Floating-Point Representation}
+  Real numbers are stored as
+  \begin{equation*}
+    x = \pm(0.d_1d_2d_3\dots d_m)_{\beta} \times \beta^{e}
+\end{equation*}
+\end{block}
+\begin{itemize}
+  \item $d_1d_2d_3\dots d_m$ is the mantissa, $e$ is the exponent
+  \item $e$ is negative, positive or zero
+  \item the general normalized form requires $d_1 \ne 0$
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point}
+\begin{example}
+  In base 10
+\begin{itemize}
+  \item 1000.12345 can be written as
+\begin{equation*}
+  (0.100012345)_{10} \times 10^4
+\end{equation*}
+  \item 0.000812345 can be written as
+\begin{equation*}
+  (0.812345)_{10} \times 10^{-3}
+\end{equation*}
+\end{itemize}
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point}
+  Suppose we have only 3 bits for a mantissa and a 1 bit exponent stored
+like
+
+\begin{center}
+\begin{tabular}{|c|c|c||c|}\hline
+  $.d_1$ & $d_2$ & $d_3$ & $e_1$\\\hline
+\end{tabular}
+\end{center}
+
+All possible combinations give:
+\begin{align*}
+000_2 & = 0\\
+\dots & \qquad\qquad \times 2^{-1,0,1}\\
+111_2 & = 7\\
+\end{align*}
+So we get $0,\frac{1}{16},\frac{2}{16},\dots,\frac{7}{16}$, 
+$0,\frac{1}{4},\frac{2}{4},\dots,\frac{7}{4}$, 
+and $0,\frac{1}{8},\frac{2}{8},\dots,\frac{7}{8}$.  On the real line:
+
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bit}
+\end{center}
+
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Overflow, Underflow}
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bit}
+\end{center}
+\begin{itemize}
+  \item computations too close to zero may result in \emph{underflow}
+  \item computations too large may result in \emph{overflow}
+  \item overflow error is considered more severe
+  \item underflow can just fall back to 0
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Normalizing}
+If we use the normalized form in our 4-bit case, we lose $0.001_2\times
+2^{-1,0,1}$ along with other.  So we cannot represent
+$\frac{1}{16}$,
+$\frac{1}{8}$,
+and $\frac{3}{16}$.
+
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bit}
+\end{center}
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bitnormalized}
+\end{center}
+
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{}
+More on numerical representation...
+\begin{itemize}
+  \item read 
+    \begin{description}
+      \item[5th ed.] end of section \S 2.1 in NMC
+      \item[6th ed.] appendix B.1 in NMC
+    \end{description}
+\end{itemize}
+
+\bigskip
+Next:
+\begin{itemize}
+  \item Floating Points
+  \begin{itemize}
+    \item IEEE 754
+    \item mantissa, exponent, machine epsilon, hidden bits
+    \item roundoff, rounding
+  \end{itemize}
+  \item loss of significance
+  \item precision
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\end{document}

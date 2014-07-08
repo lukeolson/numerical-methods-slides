@@ -1,0 +1,718 @@
+% Copyright Luke Olson 2009--2014
+% This work is licensed under the Creative Commons
+% Attribution-NonCommercial-NoDerivatives 4.0 International License. To view a
+% copy of this license, visit http://creativecommons.org/licenses/by-nc-nd/4.0/.
+%
+\documentclass[10pt]{beamer}
+%\documentclass[handout,10pt]{beamer}
+%
+\mode<presentation>
+{
+  \usetheme[secheader]{Boadilla}
+  \usecolortheme{luke}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  %\setbeamercovered{transparent}
+  %
+}
+\mode<handout>
+{
+  \usetheme[secheader]{Boadilla}
+  \usefonttheme[onlymath]{serif}
+  \setbeamercovered{invisible}
+  \usecolortheme{luke2}
+  %\setbeamercovered{transparent}
+}
+
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{pxfonts}
+\usepackage{eulervm}
+\usepackage{listings}
+%
+%
+%
+\newcommand{\vb}{{\bf{b}}}
+\newcommand{\ve}{{\bf{e}}}
+\newcommand{\vg}{{\bf{g}}}
+\newcommand{\vp}{{\bf{p}}}
+\newcommand{\vr}{{\bf{r}}}
+\newcommand{\vu}{{\bf{u}}}
+\newcommand{\vx}{{\bf{x}}}
+\newcommand{\vz}{{\bf{z}}}
+\newcommand{\vA}{{\bf{A}}}
+\newcommand{\vU}{{\bf{U}}}
+\newcommand{\mO}{{\mathcal{O}}}
+\newcommand{\mF}{{\mathcal{F}}}
+\definecolor{mygray}{rgb}{0.95,0.95,0.95}
+\lstset{
+        language=matlab,
+        numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,
+        basicstyle=\color{black}\ttfamily\small,
+        commentstyle=\color{green}\ttfamily,
+        keywordstyle=\color{blue}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        showstringspaces=false,
+        backgroundcolor=\color{mygray},
+        breaklines,
+}
+
+\author{L. Olson}
+\institute[UIUC]
+{Department of Computer Science\\
+University of Illinois at Urbana-Champaign\\
+\vspace{0.5cm}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfdeclareimage[height=0.5cm]{university-logo}{./figs/uiuclogo}
+\logo{\pgfuseimage{university-logo}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[CS 357]{Lecture 4}
+\subtitle{IEEE Floating Point}
+\date{September 3, 2009}
+
+\begin{document}
+% -------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Goals:}
+\begin{itemize}
+  \item highlight IEEE-754 standard
+  \item precision
+  \item loss of significance
+  \item cancellation
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Why this is important:}
+\begin{itemize} 
+  \item IEEE-754 is a widely used standard accepted by hardware/software makers
+    \begin{itemize}
+      \item defines the floating point distribution for our computation
+      \item offer several rounding modes which effect accuracy
+    \end{itemize}
+  \item Floating point arithmetic emerges in nearly every piece of code
+    \begin{itemize}
+      \item even modest mathematical operation yield loss of significant bits
+      \item several pitfalls in common mathematical expressions
+    \end{itemize}
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Points}
+\begin{block}{Normalized Floating-Point Representation}
+  Real numbers are stored as
+  \begin{equation*}
+    x = \pm(d_0.d_1d_2d_3\dots d_m)_{\beta} \times \beta^{e}
+\end{equation*}
+\end{block}
+\begin{itemize}
+  \item $d_1d_2d_3\dots d_m$ is the mantissa, $e$ is the exponent
+  \item $e$ is negative, positive or zero
+  \item in normalized form we assume $d_0 =1$ and do not store the bit
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point}
+\begin{example}
+  In base 10
+\begin{itemize}
+  \item 1000.12345 can be written as
+\begin{equation*}
+  (0.100012345)_{10} \times 10^4
+\end{equation*}
+  \item 0.000812345 can be written as
+\begin{equation*}
+  (0.812345)_{10} \times 10^{-3}
+\end{equation*}
+\end{itemize}
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point}
+  Suppose we have only 3 bits for a mantissa and a 2 bit exponent stored
+like
+
+\begin{center}
+\begin{tabular}{|c|c||c|c|c|}\hline
+  $e_1$ & $e_2$ & $.d_1$ & $d_2$ & $d_3$ \\\hline
+\end{tabular}
+\end{center}
+where the fraction is in the form $q \times 2^{m}$.  Also assume $m=c-1$ with
+$q$ and $c$ represented by bits $d_i$ and $e_i$ respectively.  Assume $e_1e_2
+=11$ is reserved for the special case of $+\infty$.  With $m=c-1$ we have
+$m=0-1,\, 1-1,\, 2-1=-1,\, 0,\, 1$.
+
+All possible combinations give:
+\begin{align*}
+000_2 & = 0\\
+\dots & \qquad\qquad \times 2^{-1,0,1}\\
+111_2 & = 7\\
+\end{align*}
+So we get $0,\frac{1}{16},\frac{2}{16},\dots,\frac{7}{16}$, 
+$0,\frac{1}{4},\frac{2}{4},\dots,\frac{7}{4}$, 
+and $0,\frac{1}{8},\frac{2}{8},\dots,\frac{7}{8}$.  On the real line:
+
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bit}
+\end{center}
+
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Overflow, Underflow}
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bit}
+\end{center}
+\begin{itemize}
+  \item computations too close to zero may result in \emph{underflow}
+  \item computations too large may result in \emph{overflow}
+  \item overflow error is considered more severe
+  \item underflow can just fall back to 0
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Normalizing}
+If we use the normalized form in our 4-bit case, we lose $0.001_2\times
+2^{-1,0,1}$ along with other.  So we cannot represent
+$\frac{1}{16}$,
+$\frac{1}{8}$,
+and $\frac{3}{16}$.
+
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bit}
+\end{center}
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bitnormalized}
+\end{center}
+
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{IEEE Floating Point (v. 754)}
+  \begin{itemize}
+  \item How much storage do we actually use in practice?
+  \item 32-bit word lengths are typical
+  \item IEEE Single-precision floating-point numbers use 32 bits
+  \item IEEE Double-precision floating-point numbers use 64 bits
+  \item Goal: use the 32-bits to best represent the normalized floating
+point number
+\end{itemize}
+\begin{center}
+  \pgfimage[width=8cm]{figs/ieee_single}
+\end{center}
+\begin{center}
+  \pgfimage[width=8cm]{figs/ieee_double}
+\end{center}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{IEEE Single Precision (Marc-32)}
+\begin{equation*}
+  x = \pm q \times 2^m
+\end{equation*}
+\begin{center}
+  \pgfimage[width=8cm]{figs/ieee_single}
+\end{center}
+Notes:
+\begin{itemize}
+  \item 1-bit sign
+  \item 8-bit exponent $|m|$
+  \item 23-bit mantissa $q$
+  \item The leading one in the mantissa $q$ does not need to be represented:
+$b_1=1$ is hidden bit
+  \item IEEE 754: put $x$ in $1.f$ normalized form
+  \item $0 < m + 127 = c < 255$ 
+  \item Largest exponent = 127, Smallest exponent = -126
+  \item Special cases: $c=0, 255$
+  \item use 1-bit sign for negatives (1) and positives (0)
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{IEEE Single Precision}
+\begin{equation*}
+  x = \pm q \times 2^m
+\end{equation*}
+Process for $x=-52.125$:
+\begin{enumerate}
+  \item Convert both integer and fractional to binary: $x=-(110100.00100000000)_2$
+  \item Convert to $1.f$ form:
+$x=\underbrace{-}_{1}(1.\underbrace{101\,000\,010\,000\,\dots\,0}_{23})_2\times
+2^{5}$
+  \item Convert exponent $5 = c-127 \Rightarrow c = 132 \Rightarrow c =
+(\underbrace{10\,000\,100}_{8})_2$
+\end{enumerate}
+\begin{equation*}
+\underbrace{1}_{1}
+\underbrace{10\,000\,100}_{8}
+\underbrace{101\,000\,010\,000\,\dots\,0}_{23}
+\end{equation*}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{IEEE Single Precision}
+Special Cases:
+\begin{itemize}
+  \item denormalized/subnormal numbers: use 1 extra bit in the significant:
+exponent is now -126 (less precision, more range), indicated by
+$00000000_2$ in the exponent field
+  \item two zeros: +0 and -0 (0 mantissa, 0 exponent)
+  \item two $\infty$'s: $+\infty$ and $-\infty$ 
+  \item $\infty$ (0 mantissa, $11111111_2$ exponenet)
+  \item NaN (any mantissa, $11111111_2$ exponent)
+  \item see appendix C.1 in NMC 6th ed.
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{IEEE Double Precision}
+\begin{center}
+  \pgfimage[width=8cm]{figs/ieee_double}
+\end{center}
+\begin{itemize}
+  \item 1-bit sign
+  \item 11-bit exponent
+  \item 52-bit mantissa
+  \item single-precision: about 6 decimal digits of precision
+  \item double-precision: about 15 decimal digits of precision
+  \item $m=c-1023$
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Precision vs. Range}
+\begin{tabular}{l|c|c}
+type    & range                                                     & approx
+range\\\hline\hline
+        & $-3.40\times 10^{38} \leq x \leq -1.18 \times 10^{-38}$   & \\
+single  & 0                                                         & $2^{-126}\rightarrow 2^{128}$\\
+        & $1.18 \times 10^{-38} \leq x \leq 3.40 \times 10^{38}$    & \\\hline
+        & $-1.80\times 10^{318} \leq x \leq -2.23 \times 10^{-308}$ & \\
+double  & 0                                                         & $2^{-1022}\rightarrow 2^{1024}$\\
+        & $2.23 \times 10^{-308} \leq x \leq 1.80 \times 10^{308} $ & \\
+\end{tabular}
+\begin{lstlisting}[caption=Matlab Tools]
+>> realmax
+ans = 1.7977e+308
+
+>> realmin
+ans = 2.2251e-308
+\end{lstlisting}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{$\epsilon_m$}
+Take $x=1.0$ and add $1/2, 1/4, \dots, 2^{-i}$:
+\begin{center} 
+\begin{tabular}{|c||c|c|c|c|c|c|c|c|c|c|c||c|c|} 
+\multicolumn{5}{c}{Hidden bit} & \multicolumn{8}{l}{ } \\ 
+\multicolumn{1}{c}{$\downarrow$} & \multicolumn{11}{l}
+{$\leftarrow$ \hfill 52 bits \hfill $\rightarrow$} \\
+\hline
+ 1 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & e & e  \\ \hline \hline  
+ 1 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & e & e  \\ \hline \hline  
+ 1 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & e & e  \\ \hline \hline  
+\multicolumn{13}{c}{....... } \\ \hline 
+ 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & e & e  \\ \hline \hline  
+ 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & e & e  \\ \hline \hline  
+\end{tabular} 
+\end{center}
+\begin{itemize}
+  \item Ooops!
+  \item use $fl(x)$ to represent the floating point machine number for
+the real number $x$
+  \item $fl(1+2^{-52}) \ne 1$, but $fl(1+2^{-53}) = 1$
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{$\epsilon_m$}
+\begin{block}{Machine Epsilon}
+The
+machine epsilon $\epsilon_m$ is the smallest number such that
+\begin{equation*}
+  fl(1+\epsilon_m) \ne 1
+\end{equation*}
+\begin{itemize}
+  \item The double precision machine epsilon is about $2^{-52}$.  
+  \item The single precision machine epsilon is about $2^{-23}$.  
+\end{itemize}
+
+\bigskip
+\end{block}
+\begin{lstlisting}
+>> eps
+ans = 2.2204e-16
+
+>> eps('single')
+ans = 1.1921e-07
+\end{lstlisting}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+%  % -------------------------------------------------
+\begin{frame}
+\begin{center}
+\pgfimage[width=0.9\textwidth]{figs/floatingpoints}
+\end{center}
+\end{frame}
+% -------------------------------------------------
+%  % -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point Errors}
+\begin{itemize}
+  \item Not all reals can be exactly represented as a machine floating
+point number.  Then what?
+  \item Round-off error
+  \item IEEE options: 
+\begin{itemize}
+    \item Round to next nearest FP (preferred), Round to 0,
+Round up, and Round down
+\end{itemize}
+\end{itemize}
+Let $x_+$ and $x_-$ be the two floating point machine numbers closest to $x$
+\begin{itemize}
+  \item round to nearest: $round(x) = x_-$ or $x_+$, whichever is closest
+  \item round toward 0: $round(x) = x_-$ or $x_+$, whichever is between 0 and
+$x$
+  \item round toward $-\infty$ (down): $round(x) = x_-$
+  \item round toward $+\infty$ (up): $round(x) = x_+$
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{Floating Point Errors}
+How big is this error?  Suppose ($x$ is closer to $x_-$)
+\begin{align*}
+  x                  & = (0.1b_2b_3\dots b_{24}b_{25}b_{26})_2\times 2^{m}\\
+  x_{-}              & = (0.1b_2b_3\dots b_{24})_2\times 2^{m}\\
+  x_{+}              & = \left((0.1b_2b_3\dots b_{24})_2 + 2^{-24}\right)\times 2^{m}\\
+  |x-x_{-}|          &\leq \frac{|x_{+}-x_{-}|}{2}=2^{m-25}\\
+  \left|\frac{x-x_{-}}{x}\right| &\leq \frac{2^{m-25}}{1/2\times 2^{m}} \leq 2^{-24} = \epsilon_m/2
+\end{align*}
+
+\end{frame}
+% -------------------------------------------------
+%  % -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point Arithmetic}
+\begin{itemize}
+  \item Problem: The set of representable machine numbers is FINITE.
+  \item So not all math operations are well defined!
+  \item Basic algebra breaks down in floating point arithmetic
+\end{itemize}
+\begin{example}
+\begin{equation*}
+a+(b+c) \ne (a+b)+c
+\end{equation*}
+\end{example}
+\begin{center}
+  \pgfimage[width=12cm]{figs/fp4bitnormalized}
+\end{center}
+\end{frame}
+% -------------------------------------------------
+%  % -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point Arithmetic}
+\begin{block}{Rule 1.} 
+
+\[fl(x) = x (1 + \epsilon), \quad \mbox{where} \quad 
+|\epsilon| \le \epsilon_m\]
+\end{block}
+
+\begin{block}{Rule 2.} 
+For all operations $\odot$ (one of $+, -, *, / $)
+
+\[fl(x \odot y ) = (x \odot y) 
+(1 + \epsilon_{\odot} ), \quad \mbox{where} \quad 
+|\epsilon_\odot | \le \epsilon_m\]
+\end{block}
+
+\begin{block}{Rule 3.}
+For $+, *$  operations \[fl(a \odot b) = fl(b \odot a)\]
+\end{block}
+
+There were many discussions on what conditions/ rules
+should be satisfied by floating point arithmetic. 
+The IEEE standard is a set of standards adopted by many
+CPU manufacturers.
+\end{frame}
+% -------------------------------------------------
+%  % -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point Arithmetic}
+Consider the sum of 3 numbers: $y = a + b + c $.
+
+\bigskip
+Done as $ fl( fl(a+b) + c) $
+\begin{eqnarray*} 
+\eta & = & fl(a+b) = (a+b)(1+\epsilon_1) \\
+y_1  & = & fl( \eta+ c) =  (\eta+c)(1+\epsilon_2) \\
+     & = & \left[ (a+b)(1+\epsilon_1)   +c \right] (1+\epsilon_2) \\ 
+     & = & \left[ (a+b +c) + (a+b) \epsilon_1)  \right] (1+\epsilon_2) \\ 
+     & = &  (a+b +c) \left[1 + \frac{a+b}{a+b+c} \epsilon_1
+(1+\epsilon_2) + \epsilon_2
+  \right]
+\end{eqnarray*}
+
+So disregarding the high order term $\epsilon_1 \epsilon_2 $ 
+\[ fl( fl(a+b) + c) = (a+b+c) (1 + \epsilon_3) 
+\quad \mbox{with} \quad \epsilon_3 \approx \frac{a+b}{a+b+c} \epsilon_1 +
+\epsilon_2\]
+\end{frame}
+%  % -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point Arithmetic}
+
+
+If we redid the computation as $ y_2 = fl( a + fl(b+c)) $
+we would find 
+
+\[
+fl( a + fl(b+c)) = (a+b+c) (1 + \epsilon_4) 
+\quad \mbox{with} \quad \epsilon_4 \approx \frac{b+c}{a+b+c} \epsilon_1
++ \epsilon_2\]
+
+Main conclusion:
+\bigskip
+
+The first error is \underline{amplified} by the factor $(a+b)/y$ in the
+first case and $(b+c)/y$ in the second case. 
+
+\bigskip
+In order to sum
+ $n$ numbers more accurately, it is better to start with the small
+ numbers first. [However, sorting before adding is usually not worth the cost!] 
+% Note that the DNRM2 routine does attempt to find the small values first
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Floating Point Arithmetic}
+\framesubtitle{Roundoff errors and floating-point arithmetic} 
+
+\begin{alertblock}{}
+One of the most serious problems in floating point arithmetic
+is that of cancellation. 
+If two large and
+close-by numbers are subtracted the result (a small number)
+carries very few accurate digits (why?). This is fine if the 
+result is not reused. If the result is part of another 
+calculation, then  there may be a serious problem
+\end{alertblock}
+
+\begin{example}
+ Roots of the equation
+\[
+x^2 + 2 p x - q = 0
+\] 
+
+Assume we want the root with smallest absolute value:
+
+\[  y = -p + \sqrt{p^2 + q} = \frac{ q }{  p + \sqrt{p^2 + q}} \]
+\end{example}
+
+
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Loss of Significance}
+\begin{minipage}[t]{4.2in} 
+\begin{lstlisting}[mathescape,caption=alg 1]
+$ s $  := $ p^2$       
+$ t $  := $  s+ q $    
+$ u $  := $  \sqrt{t}$
+$ y $  := $ -p + u $ 
+\end{lstlisting}
+\end{minipage} 
+\begin{minipage}[t]{4.2in} 
+\begin{lstlisting}[mathescape,caption=alg 2]
+$ s $  := $ p^2 $
+$ t $  := $ s+ q$
+$ u $  := $ \sqrt{t}$
+$ v $  := $ p+ u $
+$ y $  := $ q/v$
+\end{lstlisting}
+\end{minipage} 
+
+Step 4 of Algorithm 1 can have severe cancellation when 
+$p >> q$ and when $p$ is positive. 
+\end{frame}
+%  % -------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{}
+\begin{lstlisting} 
+>> p = 10000;
+>> q = 1;
+>> y = -p+sqrt(p^2 + q)
+y = 5.000000055588316e-05
+
+>> y2 = q/(p+sqrt(p^2+q))
+y2 = 4.999999987500000e-05
+
+>> x = y;
+>> x^2 + 2 * p * x -q
+ans = 1.361766321927860e-08
+
+>> x = y2; 
+>> x^2 + 2 * p * x -q
+ans = -1.110223024625157e-16
+\end{lstlisting} 
+
+Consider now the case when 
+\[ p = - (1 + \epsilon /2)   \qquad\text{and}\qquad  q = -(1+\epsilon)\]
+
+Exact Roots?  Take $\epsilon = 1.E-08$ and use matlab:
+
+\begin{lstlisting} 
+   x = - p - sqrt(p^2 + q)    --->     1.00000000500000
+   y = - p + sqrt(p^2 + q)    --->     1.00000000500000
+\end{lstlisting}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Catastrophic Cancellation}
+Adding $c = a + b$ will result in a large error if
+\begin{itemize}
+  \item $a \gg b$
+  \item $a \ll b$
+\end{itemize}
+Let
+\begin{align*}
+  a & = x.xxx\dots \times 10^0\\
+  b & = y.yyy\dots \times 10^{-8}\\
+\end{align*}
+Then\qquad
+\begin{tabular}{c l l}
+& $\overbrace{x.xxx\,xxxx\,xxxx\,xxxx}^{\text{finite precision}}$& \\
++& $0.000\,0000\,yyyy\,yyyy$ & $yyyy\,yyyy$\\\hline
+=& $x.xxx\,xxxx\,zzzz\,zzzz$ & $\underbrace{????\,????}_{\text{lost precision}}$\\
+\end{tabular}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Catastrophic Cancellation}
+Subtracting $c=a-b$ will result in large error if $a \approx b$.
+For example
+\begin{align*}
+  a & x.xxxx\,xxxx\,xxx1\,\overbrace{ssss\dots}^{\text{lost}}\\
+  b & x.xxxx\,xxxx\,xxx0\,\overbrace{tttt\dots}^{\text{lost}}\\
+\end{align*}
+Then\qquad
+\begin{tabular}{c l l}
+& $\overbrace{x.xxx\,xxxx\,xxx1}^{\text{finite precision}}$& \\
++& $x.xxx\,xxxx\,xxx0$\\\hline
+=& $0.000\,0000\,0001$ & $\underbrace{????\,????}_{\text{lost precision}}$\\
+\end{tabular}
+\end{frame}
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Summary}
+\begin{itemize}
+\item addition: $c=a+b$ if $a\gg b$ or $a \ll b$
+\item subtraction: $c=a-b$ if $a \approx b$
+\item catastrophic: caused by a single operation, not by an accumulation of
+errors
+\item can often be fixed by mathematical rearrangement
+\end{itemize}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Loss of Significance}
+\begin{example}
+  $x = 0.37214\,48693$ and
+  $y = 0.37202\,14371$.  What is the relative error in $x-y$ in a
+computer with 5 decimal digits of accuracy?
+\begin{align*}
+  \frac{|x-y - (\bar{x}-\bar{y})|}{|x-y|} 
+& = \frac{|0.37214\,48693 - 0.37202\,14371 - 0.37214 +
+0.37202|}{|0.37214\,48693 - 0.37202\,14371|}\\
+& \approx 3\times 10^{-2}\\
+\end{align*}
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Loss of Significance}
+\begin{block}{Loss of Precision Theorem}
+  Let $x$ and $y$ be (normalized) floating point machine numbers with
+$x>y>0$.
+\bigskip
+
+If $2^{-p} \,\leq\, 1-\frac{y}{x} \,\leq\, 2^{-q}$ for positive integers $p$
+and $q$, the significant binary digits lost in calculating $x-y$ is between $q$ and $p$.
+\end{block}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Loss of Significance}
+\begin{example}
+  Consider $x=37.593621$ and $y=37.584216$.
+\begin{equation*}
+  2^{-11} \,<\, 1-\frac{y}{x} = 0.00025\,01754 \,<\, 2^{-12}
+\end{equation*}
+So we lose 11 or 12 bits in the computation of $x-y$.  yikes!
+\end{example}
+\begin{example}
+Back to the other example (5 digits): $x = 0.37214$ and
+  $y = 0.37202$.  
+\begin{equation*}
+  10^{-4} \,<\, 1-\frac{y}{x} = 0.00032 \,<\, 10^{-5}
+\end{equation*}
+So we lose 4 or 5 bits in the computation of $x-y$.
+\bigskip
+Here, $x-y=0.00012$ which has only 1 significant digit that we can be
+sure about
+\end{example}
+\end{frame}
+% -------------------------------------------------
+% -------------------------------------------------
+\begin{frame}
+\frametitle{Loss of Significance}
+So what to do?  Mainly rearrangement.
+\begin{equation*}
+  f(x) = \sqrt{x^2 + 1} - 1
+\end{equation*}
+\onslide<2->{
+\begin{alertblock}{}
+Problem at $x\approx 0$.
+\end{alertblock}
+}
+\onslide<3->{
+One type of fix:
+\begin{align*}
+  f(x) & = \left(\sqrt{x^2 + 1} -
+1\right)\left(\frac{\sqrt{x^2+1}+1}{\sqrt{x^2+1}+1}\right)\\
+& = \frac{x^2}{\sqrt{x^2+1}+1}
+\end{align*}
+no subtraction!
+}
+
+\end{frame}
+% -------------------------------------------------
+\end{document}
