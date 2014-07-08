@@ -10,7 +10,7 @@ Compiling
 
 to compile some printable versions use
 
-  ./compile.sh lecture01
+    ./compile.sh lecture01
 
 Copyright
 =========
